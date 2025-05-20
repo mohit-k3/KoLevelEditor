@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "site": "koleveleditor",
+    "public": "out",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
