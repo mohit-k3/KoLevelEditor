@@ -1,3 +1,4 @@
+
 import type { BobbinCell, FabricBlockData, LevelData, BobbinColor } from './types';
 
 export const DEFAULT_LEVEL_NUMBER = 1;
@@ -10,7 +11,8 @@ export const AVAILABLE_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow'
 export const LIMITED_FABRIC_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow', 'Purple'];
 
 export const createEmptyBobbinCell = (): BobbinCell => ({ type: 'empty' });
-export const createEmptyFabricBlock = (): FabricBlockData => ({ color: LIMITED_FABRIC_COLORS[0] });
+// Creates an actual fabric block object
+export const createFabricBlock = (color?: BobbinColor): FabricBlockData => ({ color: color || LIMITED_FABRIC_COLORS[0] });
 
 export const createDefaultLevelData = (): LevelData => ({
   level: DEFAULT_LEVEL_NUMBER,
@@ -26,7 +28,7 @@ export const createDefaultLevelData = (): LevelData => ({
     maxFabricHeight: DEFAULT_MAX_FABRIC_HEIGHT,
     columns: Array(DEFAULT_FABRIC_COLS)
       .fill(null)
-      .map(() => [createEmptyFabricBlock()]), // Start with one block per column
+      .map(() => []), // Initialize with empty arrays for sparse columns
   },
 });
 
@@ -62,14 +64,16 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
   fabricArea: {
     cols: 4,
     maxFabricHeight: 8,
+    // Fabric columns are now sparse, blocks listed bottom-up
     columns: [
-      [ { color: "Red" }, { color: "Green" }, { color: "Red" }, { color: "Red" }, { color: "Blue" }, { color: "Green" }, { color: "Red" }, { color: "Blue" }, ],
-      [ { color: "Blue" }, { color: "Green" }, { color: "Red" }, { color: "Blue" }, { color: "Green" }, { color: "Red" }, { color: "Red" }, { color: "Red" }, ],
-      [ { color: "Green" }, { color: "Red" }, { color: "Red" }, { color: "Green" }, { color: "Red" }, { color: "Blue" }, { color: "Green" }, { color: "Green" }, ],
-      [ { color: "Red" }, { color: "Blue" }, { color: "Red" }, { color: "Red" }, { color: "Blue" }, { color: "Green" }, { color: "Red" }, { color: "Red" }, ],
-    ],
+      [{ color: "Red" }, { color: "Green" }, { color: "Red" }, { color: "Red" }, { color: "Blue" }, { color: "Green" }, { color: "Red" }, { color: "Blue" }].slice(0,8), // Example: All 8 blocks
+      [{ color: "Blue" }, { color: "Green" }, { color: "Red" }].slice(0,8), // Example: 3 blocks
+      [{ color: "Green" }, { color: "Red" }, { color: "Red" }, { color: "Green" }, { color: "Red" }, { color: "Blue" }].slice(0,8), // Example: 6 blocks
+      [], // Example: Empty column
+    ].map(col => col.filter(block => block !== null)), // Ensure no nulls from slicing if example was shorter
   },
 };
+
 
 export const COLOR_MAP: Record<BobbinColor, string> = {
   Red: 'hsl(var(--knitout-red))',

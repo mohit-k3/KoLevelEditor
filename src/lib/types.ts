@@ -1,3 +1,4 @@
+
 export type BobbinColor = 'Red' | 'Blue' | 'Green' | 'Yellow' | 'Purple' | string; // Allow custom string for flexibility
 export const FABRIC_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green'];
 export const BOBBIN_AREA_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow', 'Purple'];
@@ -22,7 +23,7 @@ export interface LevelData {
   fabricArea: {
     cols: number;
     maxFabricHeight: number;
-    columns: FabricBlockData[][];
+    columns: FabricBlockData[][]; // Each column array contains only actual blocks, sparse
   };
 }
 

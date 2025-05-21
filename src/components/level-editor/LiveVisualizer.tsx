@@ -2,9 +2,12 @@
 "use client";
 import React from 'react';
 import { useLevelData } from '@/contexts/LevelDataContext';
-import type { BobbinCell, FabricBlockData, LevelData } from '@/lib/types';
-import { COLOR_MAP } from '@/lib/constants';
+import type { BobbinCell, FabricBlockData, LevelData, BobbinColor } from '@/lib/types';
+import { COLOR_MAP, LIMITED_FABRIC_COLORS, createFabricBlock } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { FabricBlockPopover } from './FabricBlockPopover';
+
 
 interface LiveVisualizerProps {
   editorType: 'bobbin' | 'fabric';
@@ -15,7 +18,8 @@ const CELL_SIZE = 32; // px
 const SPOOL_WIDTH_RATIO = 0.8;
 const SPOOL_END_HEIGHT_RATIO = 0.2;
 const PIPE_RADIUS_RATIO = 0.25;
-const FABRIC_BLOCK_GAP = 2;
+const FABRIC_BLOCK_GAP = 2; // Gap between blocks in fabric visualizer
+const FABRIC_EMPTY_SLOT_COLOR = "hsl(var(--muted) / 0.5)"; // Color for empty clickable slots
 
 const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: boolean}> = ({ data, hasErrors }) => {
   const { rows, cols, cells } = data;
@@ -35,7 +39,6 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           const x = cIdx * CELL_SIZE;
           const y = rIdx * CELL_SIZE;
           
-          // Base for empty/hidden cells
           let cellElement = <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" />;
 
           if (cell.type === 'hidden' && cell.color) {
@@ -78,10 +81,9 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             );
           }
           
-          return <React.Fragment key={`${rIdx}-${cIdx}`}>{cellElement}</React.Fragment>;
+          return <React.Fragment key={`bobbin-${rIdx}-${cIdx}`}>{cellElement}</React.Fragment>;
         })
       )}
-       {/* Grid lines */}
       {Array.from({ length: rows + 1 }).map((_, i) => (
         <line key={`h-line-${i}`} x1="0" y1={i * CELL_SIZE} x2={width} y2={i * CELL_SIZE} stroke="hsl(var(--border))" strokeWidth="0.5" />
       ))}
@@ -93,46 +95,110 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
 };
 
 const FabricVisualizer: React.FC<{data: LevelData['fabricArea'], hasErrors: boolean}> = ({ data, hasErrors }) => {
+  const { setLevelData } = useLevelData();
   const { cols, maxFabricHeight, columns } = data;
-  const blockHeight = (CELL_SIZE - FABRIC_BLOCK_GAP);
-  const width = cols * CELL_SIZE;
-  const height = maxFabricHeight * CELL_SIZE;
+  
+  const blockDisplayHeight = CELL_SIZE - FABRIC_BLOCK_GAP;
+  const svgWidth = cols * CELL_SIZE;
+  const svgHeight = maxFabricHeight * CELL_SIZE;
 
   return (
     <svg 
-      width={width} 
-      height={height} 
-      viewBox={`0 0 ${width} ${height}`} 
+      width={svgWidth} 
+      height={svgHeight} 
+      viewBox={`0 0 ${svgWidth} ${svgHeight}`} 
       className={cn("border rounded-md bg-background shadow-inner", hasErrors && "outline outline-2 outline-offset-2 outline-destructive")}
-      aria-label="Fabric area visualization"
+      aria-label="Fabric area visualization (interactive)"
     >
-      {columns.map((column, cIdx) => 
-        column.slice(0, maxFabricHeight).map((block, bIdx) => {
+      {Array.from({ length: cols }).map((_, cIdx) => 
+        Array.from({ length: maxFabricHeight }).map((_, bIdxInVis) => { 
+          // bIdxInVis is 0-indexed from top visual row
+          // bIdxInColumnData is 0-indexed from bottom data layer
+          const bIdxInColumnData = maxFabricHeight - 1 - bIdxInVis; 
+
+          const currentBlock = columns[cIdx]?.[bIdxInColumnData]; // May be undefined if slot is empty
+
           const x = cIdx * CELL_SIZE + FABRIC_BLOCK_GAP / 2;
-          // Draw from bottom up
-          const y = height - (bIdx + 1) * CELL_SIZE + FABRIC_BLOCK_GAP / 2; 
-          const blockColor = COLOR_MAP[block.color] || block.color;
+          const y = bIdxInVis * CELL_SIZE + FABRIC_BLOCK_GAP / 2;
+
+          const fillColor = currentBlock ? (COLOR_MAP[currentBlock.color] || currentBlock.color) : FABRIC_EMPTY_SLOT_COLOR;
+          const strokeColor = currentBlock ? (COLOR_MAP[currentBlock.color] || currentBlock.color) : "hsl(var(--border))";
 
           return (
-            <rect
-              key={`${cIdx}-${bIdx}`}
-              x={x}
-              y={y}
-              width={CELL_SIZE - FABRIC_BLOCK_GAP}
-              height={blockHeight}
-              fill={blockColor}
-              rx="2"
-            />
+            <Popover key={`fabric-popover-${cIdx}-${bIdxInVis}`}>
+              <PopoverTrigger asChild>
+                <rect
+                  x={x}
+                  y={y}
+                  width={CELL_SIZE - FABRIC_BLOCK_GAP}
+                  height={blockDisplayHeight}
+                  fill={fillColor}
+                  stroke={strokeColor}
+                  strokeWidth={currentBlock ? 1 : 0.5}
+                  rx="2"
+                  style={{ cursor: 'pointer' }}
+                  aria-label={
+                    currentBlock 
+                      ? `Fabric block color ${currentBlock.color}, column ${cIdx + 1}, visual row ${bIdxInVis + 1}. Click to edit.` 
+                      : `Empty fabric slot, column ${cIdx + 1}, visual row ${bIdxInVis + 1}. Click to add/edit block.`
+                  }
+                />
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <FabricBlockPopover
+                  blockData={currentBlock || null} // Pass null if undefined for popover
+                  colIndex={cIdx}
+                  rowIndexInVisualizer={bIdxInVis} // Popover might use this for display, or we could pass bIdxInColumnData
+                  onBlockChange={(newBlockState: FabricBlockData | null) => {
+                    setLevelData(draft => {
+                      // Ensure column array exists
+                      if (!draft.fabricArea.columns[cIdx]) {
+                        draft.fabricArea.columns[cIdx] = [];
+                      }
+                      const columnDraft = draft.fabricArea.columns[cIdx];
+                      
+                      // Pad with temporary nulls if needed to reach the target index
+                      while (columnDraft.length <= bIdxInColumnData && newBlockState !== null) {
+                        columnDraft.push(null as any); // Temporarily push null
+                      }
+
+                      if (newBlockState === null) { // Removing a block
+                        if (bIdxInColumnData < columnDraft.length) {
+                           columnDraft[bIdxInColumnData] = null as any; // Mark for removal
+                        }
+                      } else { // Adding or updating a block
+                         if (bIdxInColumnData < columnDraft.length) {
+                            columnDraft[bIdxInColumnData] = newBlockState;
+                         } else {
+                            // This case should ideally be handled by padding above
+                            // or ensuring only valid slots (up to maxHeight) are targeted.
+                            // For safety, if trying to add beyond current padded length but within maxHeight:
+                            if (bIdxInColumnData < draft.fabricArea.maxFabricHeight) {
+                                columnDraft[bIdxInColumnData] = newBlockState;
+                            }
+                         }
+                      }
+                      
+                      // Compact the array: remove all nulls and keep only FabricBlockData
+                      // Also ensure the column does not exceed maxFabricHeight
+                      draft.fabricArea.columns[cIdx] = columnDraft
+                        .filter(block => block !== null && block !== undefined)
+                        .slice(0, draft.fabricArea.maxFabricHeight) as FabricBlockData[];
+                    });
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
           );
         })
       )}
-      {/* Max height indicator lines */}
-      {Array.from({ length: maxFabricHeight }).map((_, i) => (
-         <line key={`h-fabric-line-${i}`} x1="0" y1={i * CELL_SIZE} x2={width} y2={i * CELL_SIZE} stroke="hsl(var(--border))" strokeWidth="0.5" strokeDasharray="2 2" opacity="0.5"/>
+      {/* Max height indicator lines (horizontal) */}
+      {Array.from({ length: maxFabricHeight +1 }).map((_, i) => (
+         <line key={`h-fabric-line-${i}`} x1="0" y1={i * CELL_SIZE} x2={svgWidth} y2={i * CELL_SIZE} stroke="hsl(var(--border))" strokeWidth="0.5" strokeDasharray={i === maxFabricHeight ? "none" : "2 2"} opacity="0.5"/>
       ))}
-      {/* Column separator lines */}
+      {/* Column separator lines (vertical) */}
        {Array.from({ length: cols + 1 }).map((_, i) => (
-        <line key={`v-fabric-line-${i}`} x1={i * CELL_SIZE} y1="0" x2={i * CELL_SIZE} y2={height} stroke="hsl(var(--border))" strokeWidth="0.5" />
+        <line key={`v-fabric-line-${i}`} x1={i * CELL_SIZE} y1="0" x2={i * CELL_SIZE} y2={svgHeight} stroke="hsl(var(--border))" strokeWidth="0.5" />
       ))}
     </svg>
   );
@@ -147,6 +213,7 @@ export const LiveVisualizer: React.FC<LiveVisualizerProps> = ({ editorType, clas
     <div className={cn("p-4 bg-card rounded-lg shadow space-y-3", className)}>
       <h3 className="text-lg font-semibold text-primary">
         {editorType === 'bobbin' ? 'Bobbin Area Preview' : 'Fabric Area Preview'}
+         {editorType === 'fabric' && <span className="text-sm font-normal text-muted-foreground"> (Click to edit)</span>}
       </h3>
       <div className="flex justify-center items-center overflow-auto">
       {editorType === 'bobbin' ? (
