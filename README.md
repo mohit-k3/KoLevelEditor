@@ -1,5 +1,5 @@
 # Firebase Studio
 
-This is a NextJS starter in Firebase Studio.
-
-To get started, take a look at src/app/page.tsx.
+To Add More Colors:--
+1) constants.ts--> Add colors to  AVAILABLE_COLORS, LIMITED_FABRIC_COLORS, COLOR_MAP
+2) global.css---> Inside @layer base :root, Add colors

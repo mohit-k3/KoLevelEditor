@@ -40,6 +40,15 @@ body {
     --knitout-green: 120 60% 35%; /* Adjusted for better visibility */
     --knitout-yellow: 60 100% 50%;
     --knitout-purple: 270 60% 50%;
+    --knitout-orange: 30 100% 50%;
+    --knitout-pink: 330 100% 50%;
+    --knitout-brown: 30 60% 40%;
+    --knitout-gray: 0 0% 50%;
+    --knitout-black: 0 0% 20%;
+    --knitout-white: 0 0% 95%;
+    --knitout-cyan: 180 100% 50%;
+    --knitout-magenta: 300 100% 50%;
+    --knitout-teal: 180 60% 40%;
   }
 
   .dark {
