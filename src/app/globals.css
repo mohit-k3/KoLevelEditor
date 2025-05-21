@@ -46,9 +46,11 @@ body {
     --knitout-gray: 0 0% 50%;
     --knitout-black: 0 0% 20%;
     --knitout-white: 0 0% 95%;
-    --knitout-cyan: 180 100% 50%;
     --knitout-magenta: 300 100% 50%;
     --knitout-teal: 180 60% 40%;
+    --knitout-dark-green: 120 60% 25%;
+    --knitout-white: 0 0% 100%;
+    --knitout-grey: 0 0% 50%;
   }
 
   .dark {

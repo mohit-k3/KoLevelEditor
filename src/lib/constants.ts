@@ -7,8 +7,8 @@ export const DEFAULT_BOBBIN_COLS = 5;
 export const DEFAULT_FABRIC_COLS = 4;
 export const DEFAULT_MAX_FABRIC_HEIGHT = 8;
 
-export const AVAILABLE_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 'Cyan'];
-export const LIMITED_FABRIC_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 'Cyan'];
+export const AVAILABLE_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 'Teal', 'White', 'DarkGreen', 'Gray'];
+export const LIMITED_FABRIC_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 'Teal', 'White', 'DarkGreen', 'Gray'];
 
 export const createEmptyBobbinCell = (): BobbinCell => ({ type: 'empty' });
 // Creates an actual fabric block object
@@ -84,5 +84,8 @@ export const COLOR_MAP: Record<BobbinColor, string> = {
   Orange: 'hsl(var(--knitout-orange))',
   Pink: 'hsl(var(--knitout-pink))',
   Brown: 'hsl(var(--knitout-brown))',
-  Cyan: 'hsl(var(--knitout-cyan))',
+  Teal: 'hsl(var(--knitout-teal))',
+  White: 'hsl(var(--knitout-white))',
+  DarkGreen: 'hsl(var(--knitout-dark-green))',
+  Gray: 'hsl(var(--knitout-gray))',
 };
