@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ColorPicker } from '@/components/shared/ColorPicker';
+import { NumberSpinner } from '@/components/shared/NumberSpinner';
 import { cn } from '@/lib/utils';
 
 interface BobbinCellEditorProps {
@@ -25,28 +25,51 @@ const cellTypeDisplay: Record<BobbinCell['type'], string> = {
   empty: "Empty",
 };
 
+const MAX_PIPE_COLORS = 5; // Define a maximum number of colors for a pipe
+
 export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({ cell, onCellChange, rowIndex, colIndex }) => {
-  const handleTypeChange = (type: BobbinCell['type']) => {
-    const newCell: BobbinCell = { type };
-    if (type === 'bobbin' || type === 'hidden') {
-      newCell.color = cell.color || AVAILABLE_COLORS[0];
-    } else if (type === 'pipe') {
-      newCell.colors = cell.colors || [AVAILABLE_COLORS[0], AVAILABLE_COLORS[1]];
+  
+  const handleTypeChange = (newType: BobbinCell['type']) => {
+    const newCellData: BobbinCell = { type: newType };
+    if (newType === 'bobbin' || newType === 'hidden') {
+      newCellData.color = cell.color || AVAILABLE_COLORS[0];
+    } else if (newType === 'pipe') {
+      // If current cell.colors is valid for a pipe, keep them. Otherwise, init to 2.
+      if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) {
+        newCellData.colors = cell.colors.slice(0, MAX_PIPE_COLORS); // Ensure not exceeding max
+      } else {
+        newCellData.colors = [AVAILABLE_COLORS[0], AVAILABLE_COLORS[1]];
+      }
     }
-    onCellChange(newCell);
+    onCellChange(newCellData);
   };
 
   const handleColorChange = (color: BobbinColor) => {
     onCellChange({ ...cell, color });
   };
 
-  const handlePipeColorToggle = (color: BobbinColor) => {
-    const currentColors = cell.colors || [];
-    const newColors = currentColors.includes(color)
-      ? currentColors.filter(c => c !== color)
-      : [...currentColors, color];
-    onCellChange({ ...cell, colors: newColors });
+  const actualNumPipeColors = (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) 
+    ? cell.colors.length 
+    : 2;
+
+  const handleNumPipeColorsChange = (newNum: number) => {
+    const newCount = Math.max(2, Math.min(newNum, MAX_PIPE_COLORS));
+
+    const currentColors = (cell.type === 'pipe' && cell.colors) ? cell.colors : [];
+    const updatedColors: BobbinColor[] = Array(newCount).fill(null).map((_, i) => {
+      return currentColors[i] || AVAILABLE_COLORS[i % AVAILABLE_COLORS.length];
+    });
+    onCellChange({ ...cell, type: 'pipe', colors: updatedColors });
   };
+
+  const handleIndividualPipeColorChange = (index: number, newColor: BobbinColor) => {
+    if (cell.type === 'pipe' && cell.colors) {
+      const newColors = [...cell.colors];
+      newColors[index] = newColor;
+      onCellChange({ ...cell, type: 'pipe', colors: newColors });
+    }
+  };
+
 
   const getCellDisplay = () => {
     switch (cell.type) {
@@ -70,7 +93,6 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({ cell, onCell
             className="w-full h-full rounded-sm border-2 flex items-center justify-center"
             style={{ 
               borderColor: cell.colors && cell.colors.length > 0 ? COLOR_MAP[cell.colors[0]] : 'hsl(var(--border))',
-              // Basic multi-color outline representation
               boxShadow: cell.colors && cell.colors.length > 1 ? `0 0 0 2px ${COLOR_MAP[cell.colors[1]]} inset` : 'none'
             }}
             aria-label={`Pipe cell, colors ${cell.colors?.join(', ') || 'none'}`}
@@ -95,7 +117,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({ cell, onCell
           {getCellDisplay()}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-4 space-y-4">
+      <PopoverContent className="w-72 p-4 space-y-4"> {/* Increased width for more controls */}
         <h4 className="font-medium leading-none">Edit Cell ({rowIndex+1}, {colIndex+1})</h4>
         <div>
           <Label className="text-sm font-medium">Type</Label>
@@ -126,26 +148,41 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({ cell, onCell
         )}
 
         {cell.type === 'pipe' && (
-          <div>
-            <Label className="text-sm font-medium">Pipe Colors (select ≥2)</Label>
-            <div className="mt-1 space-y-1 max-h-32 overflow-y-auto">
-              {AVAILABLE_COLORS.map(color => (
-                <div key={color} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`pipe-color-${color}-${rowIndex}-${colIndex}`}
-                    checked={(cell.colors || []).includes(color)}
-                    onCheckedChange={() => handlePipeColorToggle(color)}
-                  />
-                  <Label htmlFor={`pipe-color-${color}-${rowIndex}-${colIndex}`} className="text-sm flex items-center">
-                     <span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: COLOR_MAP[color]}}></span>
-                    {color}
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor={`num-pipe-colors-${rowIndex}-${colIndex}`} className="text-sm font-medium">
+                Number of Colors (2-{MAX_PIPE_COLORS})
+              </Label>
+              <NumberSpinner
+                id={`num-pipe-colors-${rowIndex}-${colIndex}`}
+                label="" // Label provided above
+                value={actualNumPipeColors}
+                onChange={handleNumPipeColorsChange}
+                min={2}
+                max={MAX_PIPE_COLORS}
+                className="mt-1 w-full"
+              />
+            </div>
+            {(!cell.colors || cell.colors.length < 2) && (
+                 <p className="text-xs text-destructive">Pipe must have at least 2 colors.</p>
+            )}
+            
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              <Label className="text-sm font-medium">Pipe Colors</Label>
+              {cell.colors && Array.from({ length: actualNumPipeColors }).map((_, i) => (
+                <div key={`pipe-color-picker-${i}`} className="space-y-1">
+                  <Label htmlFor={`pipe-color-${i}-${rowIndex}-${colIndex}`} className="text-xs">
+                    Color {i + 1}
                   </Label>
+                  <ColorPicker
+                    id={`pipe-color-${i}-${rowIndex}-${colIndex}`}
+                    color={cell.colors?.[i] || AVAILABLE_COLORS[0]}
+                    onChange={(newColor) => handleIndividualPipeColorChange(i, newColor)}
+                    availableColors={AVAILABLE_COLORS}
+                  />
                 </div>
               ))}
             </div>
-            {(!cell.colors || cell.colors.length < 2) && (
-                 <p className="text-xs text-destructive mt-1">Pipe must have at least 2 colors.</p>
-            )}
           </div>
         )}
       </PopoverContent>
@@ -172,3 +209,4 @@ function SpoolIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+

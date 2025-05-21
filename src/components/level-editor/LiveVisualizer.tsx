@@ -17,7 +17,7 @@ interface LiveVisualizerProps {
 const CELL_SIZE = 32; // px
 const SPOOL_WIDTH_RATIO = 0.8;
 const SPOOL_END_HEIGHT_RATIO = 0.2;
-const PIPE_RADIUS_RATIO = 0.25;
+// const PIPE_RADIUS_RATIO = 0.25; // No longer used for primary pipe visual
 const FABRIC_BLOCK_GAP = 2; // Gap between blocks in fabric visualizer
 const FABRIC_EMPTY_SLOT_COLOR = "hsl(var(--muted) / 0.5)"; // Color for empty clickable slots
 
@@ -63,22 +63,27 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             );
           }
 
-          if (cell.type === 'pipe' && cell.colors && cell.colors.length > 0) {
-            const primaryColor = COLOR_MAP[cell.colors[0]] || cell.colors[0];
-            const secondaryColor = cell.colors.length > 1 ? (COLOR_MAP[cell.colors[1]] || cell.colors[1]) : primaryColor;
-             cellElement = (
-              <g transform={`translate(${x + CELL_SIZE / 2}, ${y + CELL_SIZE / 2})`}>
-                 <rect x={-CELL_SIZE/2} y={-CELL_SIZE/2} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" />
-                <circle 
-                  cx="0" 
-                  cy="0" 
-                  r={CELL_SIZE * PIPE_RADIUS_RATIO} 
-                  fill={primaryColor} 
-                  stroke={secondaryColor}
-                  strokeWidth="2"
-                />
+          if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) {
+            const numColors = cell.colors.length;
+            const stripeWidth = CELL_SIZE / numColors;
+            cellElement = (
+              <g>
+                {/* Optional: a base rect for the cell if stripes might not perfectly cover or for borders */}
+                {/* <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" /> */}
+                {cell.colors.map((pipeColor, i) => (
+                  <rect
+                    key={`pipe-stripe-${rIdx}-${cIdx}-${i}`}
+                    x={x + i * stripeWidth}
+                    y={y}
+                    width={stripeWidth}
+                    height={CELL_SIZE}
+                    fill={COLOR_MAP[pipeColor] || pipeColor}
+                  />
+                ))}
               </g>
             );
+          } else if (cell.type === 'pipe') { // Fallback for invalid pipe (e.g. < 2 colors)
+             cellElement = <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" stroke="hsl(var(--destructive))" strokeWidth="1" />;
           }
           
           return <React.Fragment key={`bobbin-${rIdx}-${cIdx}`}>{cellElement}</React.Fragment>;
@@ -158,25 +163,17 @@ const FabricVisualizer: React.FC<{data: LevelData['fabricArea'], hasErrors: bool
                       const columnDraft = draft.fabricArea.columns[cIdx];
                       
                       // Pad with temporary nulls if needed to reach the target index
+                      // This logic is for sparse arrays where index directly maps to position from bottom
                       while (columnDraft.length <= bIdxInColumnData && newBlockState !== null) {
-                        columnDraft.push(null as any); // Temporarily push null
+                        columnDraft.push(null as any); // Temporarily push null to expand array
                       }
 
                       if (newBlockState === null) { // Removing a block
                         if (bIdxInColumnData < columnDraft.length) {
-                           columnDraft[bIdxInColumnData] = null as any; // Mark for removal
+                           columnDraft[bIdxInColumnData] = null as any; // Mark for removal by filter
                         }
                       } else { // Adding or updating a block
-                         if (bIdxInColumnData < columnDraft.length) {
-                            columnDraft[bIdxInColumnData] = newBlockState;
-                         } else {
-                            // This case should ideally be handled by padding above
-                            // or ensuring only valid slots (up to maxHeight) are targeted.
-                            // For safety, if trying to add beyond current padded length but within maxHeight:
-                            if (bIdxInColumnData < draft.fabricArea.maxFabricHeight) {
-                                columnDraft[bIdxInColumnData] = newBlockState;
-                            }
-                         }
+                         columnDraft[bIdxInColumnData] = newBlockState;
                       }
                       
                       // Compact the array: remove all nulls and keep only FabricBlockData
@@ -225,3 +222,4 @@ export const LiveVisualizer: React.FC<LiveVisualizerProps> = ({ editorType, clas
     </div>
   );
 };
+
