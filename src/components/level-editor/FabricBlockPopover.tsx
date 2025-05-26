@@ -6,6 +6,7 @@ import { COLOR_MAP, createFabricBlock, LIMITED_FABRIC_COLORS } from '@/lib/const
 import { Button } from '@/components/ui/button';
 import { Check, Trash2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox'; // Added Checkbox import
 import { PopoverClose } from '@radix-ui/react-popover';
 
 
@@ -23,7 +24,15 @@ export const FabricBlockPopover: React.FC<FabricBlockPopoverProps> = ({
   onBlockChange,
 }) => {
   const handleColorSelect = (color: BobbinColor) => {
-    onBlockChange(createFabricBlock(color));
+    // Preserve hidden state if block exists, otherwise default to false (not hidden)
+    const isCurrentlyHidden = blockData?.hidden || false;
+    onBlockChange(createFabricBlock(color, isCurrentlyHidden));
+  };
+
+  const handleHiddenToggle = (checked: boolean) => {
+    if (blockData) { // Hidden toggle only makes sense for an existing block
+      onBlockChange({ ...blockData, hidden: checked });
+    }
   };
 
   const handleRemoveBlock = () => {
@@ -58,8 +67,23 @@ export const FabricBlockPopover: React.FC<FabricBlockPopoverProps> = ({
           ))}
         </div>
       </div>
+
       {currentBlockExists && (
-        <div>
+        <div className="pt-2 border-t mt-2 space-y-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id={`fabric-hidden-${colIndex}-${rowIndexInVisualizer}`}
+              checked={!!blockData?.hidden}
+              onCheckedChange={(checked) => handleHiddenToggle(!!checked)}
+              aria-label="Hidden block"
+            />
+            <Label 
+              htmlFor={`fabric-hidden-${colIndex}-${rowIndexInVisualizer}`}
+              className="text-xs font-normal cursor-pointer"
+            >
+              Hidden Block
+            </Label>
+          </div>
           <PopoverClose asChild>
             <Button
               variant="destructive"

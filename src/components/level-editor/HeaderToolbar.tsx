@@ -3,11 +3,19 @@
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useLevelData } from '@/contexts/LevelDataContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Download, PlusSquare, Moon, Sun, Undo, Redo, Upload } from 'lucide-react';
-import type { LevelData } from '@/lib/types';
-import { createDefaultLevelData } from '@/lib/constants';
+import type { LevelData, Difficulty } from '@/lib/types';
+import { createDefaultLevelData, DEFAULT_DIFFICULTY } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -21,6 +29,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
+
 export const HeaderToolbar: React.FC = () => {
   const { levelData, setLevelData, undo, redo, canUndo, canRedo, resetLevelData, loadLevelData } = useLevelData();
   const { theme, toggleTheme } = useTheme();
@@ -31,6 +41,12 @@ export const HeaderToolbar: React.FC = () => {
     const newLevel = parseInt(e.target.value, 10);
     setLevelData(draft => {
       draft.level = isNaN(newLevel) ? 1 : newLevel;
+    });
+  };
+
+  const handleDifficultyChange = (value: string) => {
+    setLevelData(draft => {
+      draft.difficulty = value as Difficulty;
     });
   };
 
@@ -46,7 +62,7 @@ export const HeaderToolbar: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `level_${levelData.level || 'untitled'}.json`;
+      a.download = `level_${levelData.level || 'untitled'}_${levelData.difficulty}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -77,13 +93,16 @@ export const HeaderToolbar: React.FC = () => {
         }
         const importedData = JSON.parse(text) as LevelData;
         
-        // Basic validation for top-level structure (more thorough validation happens in context)
-        if (typeof importedData.level !== 'number' || !importedData.bobbinArea || !importedData.fabricArea) {
-            throw new Error("Invalid JSON structure for level data.");
+        if (typeof importedData.level !== 'number' || 
+            !importedData.bobbinArea || 
+            !importedData.fabricArea ||
+            !importedData.difficulty || // Ensure difficulty is present
+            !DIFFICULTIES.includes(importedData.difficulty)) { // Ensure difficulty is valid
+            throw new Error("Invalid JSON structure or missing/invalid difficulty for level data.");
         }
         
         loadLevelData(importedData);
-        toast({ title: "Import Successful", description: `Level ${importedData.level} loaded from ${file.name}.` });
+        toast({ title: "Import Successful", description: `Level ${importedData.level} (${importedData.difficulty}) loaded from ${file.name}.` });
       } catch (error) {
         console.error("Error importing JSON:", error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during import.";
@@ -93,7 +112,6 @@ export const HeaderToolbar: React.FC = () => {
           variant: "destructive",
         });
       } finally {
-        // Reset file input to allow importing the same file again
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -114,17 +132,38 @@ export const HeaderToolbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-card shadow-md p-3">
-      <div className="container mx-auto flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+      <div className="container mx-auto flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-4">
           <h1 className="text-xl font-semibold text-primary whitespace-nowrap">Knit It Editor</h1>
-          <Input
-            type="number"
-            value={levelData.level}
-            onChange={handleLevelChange}
-            className="w-20 h-9 text-sm"
-            aria-label="Level Number"
-            min="1"
-          />
+          <div className="flex items-end gap-2">
+            <div>
+              <Label htmlFor="level-number-input" className="text-xs text-muted-foreground">Level</Label>
+              <Input
+                id="level-number-input"
+                type="number"
+                value={levelData.level}
+                onChange={handleLevelChange}
+                className="w-20 h-9 text-sm"
+                aria-label="Level Number"
+                min="1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="difficulty-select" className="text-xs text-muted-foreground">Difficulty</Label>
+              <Select value={levelData.difficulty || DEFAULT_DIFFICULTY} onValueChange={handleDifficultyChange}>
+                <SelectTrigger id="difficulty-select" className="w-[120px] h-9 text-sm" aria-label="Level Difficulty">
+                  <SelectValue placeholder="Difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIFFICULTIES.map(d => (
+                    <SelectItem key={d} value={d} className="capitalize">
+                      {d.charAt(0).toUpperCase() + d.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-1 flex-wrap justify-end">
           <AlertDialog>

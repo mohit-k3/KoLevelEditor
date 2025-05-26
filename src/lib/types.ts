@@ -3,6 +3,8 @@ export type BobbinColor = 'Red' | 'Blue' | 'Green' | 'Yellow' | 'Purple' | strin
 export const FABRIC_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green'];
 export const BOBBIN_AREA_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow', 'Purple'];
 
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
 export interface BobbinCell {
   type: "bobbin" | "pipe" | "hidden" | "empty";
   color?: BobbinColor; // For "bobbin", "hidden"
@@ -11,10 +13,12 @@ export interface BobbinCell {
 
 export interface FabricBlockData {
   color: BobbinColor;
+  hidden?: boolean;
 }
 
 export interface LevelData {
   level: number;
+  difficulty: Difficulty;
   bobbinArea: {
     rows: number;
     cols: number;

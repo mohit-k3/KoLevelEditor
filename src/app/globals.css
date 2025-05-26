@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -37,20 +38,18 @@ body {
     /* Specific Knit Out colors */
     --knitout-red: 0 100% 50%;
     --knitout-blue: 198 100% 56%;
-    --knitout-green: 120 60% 35%; /* Adjusted for better visibility */
+    --knitout-green: 120 60% 35%;
     --knitout-yellow: 60 100% 50%;
     --knitout-purple: 274 80% 45%;
     --knitout-orange: 30 100% 50%;
     --knitout-pink: 330 100% 70%;
     --knitout-brown: 30 60% 40%;
+    --knitout-teal: 180 60% 40%;
+    --knitout-white: 0 0% 100%; 
+    --knitout-dark-green: 120 60% 25%;
     --knitout-gray: 0 0% 50%;
     --knitout-black: 0 0% 20%;
-    --knitout-white: 0 0% 95%;
     --knitout-magenta: 300 100% 50%;
-    --knitout-teal: 180 60% 40%;
-    --knitout-dark-green: 120 60% 25%;
-    --knitout-white: 0 0% 100%;
-    --knitout-grey: 0 0% 50%;
   }
 
   .dark {
@@ -74,12 +73,21 @@ body {
     --input: 220 10% 20%;
     --ring: 262 55% 60%;
 
-    /* Specific Knit Out colors (can be same or adjusted for dark mode) */
-    --knitout-red: 0 100% 60%;
-    --knitout-blue: 240 100% 60%;
-    --knitout-green: 120 60% 45%;
-    --knitout-yellow: 60 100% 60%;
-    --knitout-purple: 270 60% 60%;
+    /* Specific Knit Out colors (same for dark mode as per request) */
+    --knitout-red: 0 100% 50%;
+    --knitout-blue: 198 100% 56%;
+    --knitout-green: 120 60% 35%;
+    --knitout-yellow: 60 100% 50%;
+    --knitout-purple: 274 80% 45%;
+    --knitout-orange: 30 100% 50%;
+    --knitout-pink: 330 100% 70%;
+    --knitout-brown: 30 60% 40%;
+    --knitout-teal: 180 60% 40%;
+    --knitout-white: 0 0% 100%;
+    --knitout-dark-green: 120 60% 25%;
+    --knitout-gray: 0 0% 50%;
+    --knitout-black: 0 0% 20%;
+    --knitout-magenta: 300 100% 50%;
   }
 }
 
