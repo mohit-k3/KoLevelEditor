@@ -93,12 +93,22 @@ export const HeaderToolbar: React.FC = () => {
         }
         const importedData = JSON.parse(text) as LevelData;
         
+        // Basic structure validation
         if (typeof importedData.level !== 'number' || 
             !importedData.bobbinArea || 
-            !importedData.fabricArea ||
-            !importedData.difficulty || // Ensure difficulty is present
-            !DIFFICULTIES.includes(importedData.difficulty)) { // Ensure difficulty is valid
-            throw new Error("Invalid JSON structure or missing/invalid difficulty for level data.");
+            !importedData.fabricArea) {
+            throw new Error("Invalid JSON structure: missing level, bobbinArea, or fabricArea.");
+        }
+
+        // Handle difficulty: default to 'easy' if missing, validate if present
+        if (importedData.difficulty === undefined) {
+          importedData.difficulty = 'easy'; // Default to 'easy' if missing
+          toast({
+            title: "Import Info",
+            description: `Difficulty was missing in JSON, defaulted to 'easy'.`,
+          });
+        } else if (!DIFFICULTIES.includes(importedData.difficulty)) {
+          throw new Error(`Invalid difficulty value "${importedData.difficulty}". Must be one of: ${DIFFICULTIES.join(', ')}.`);
         }
         
         loadLevelData(importedData);
