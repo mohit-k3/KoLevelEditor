@@ -1,9 +1,20 @@
 
-export type BobbinColor = 'Red' | 'Blue' | 'Green' | 'Yellow' | 'Purple' | string; // Allow custom string for flexibility
+export type BobbinColor = 'Red' | 'Blue' | 'Green' | 'Yellow' | 'Purple' | 'Orange' | 'Pink' | 'Brown' | 'Teal' | 'White' | 'DarkGreen' | 'Gray' | 'Black' | 'Magenta';
 export const FABRIC_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green'];
-export const BOBBIN_AREA_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow', 'Purple'];
+// Updated to match AVAILABLE_COLORS from constants.ts if they should be the same
+export const BOBBIN_AREA_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 'Teal', 'White', 'DarkGreen', 'Gray', 'Black', 'Magenta'];
 
-export type Difficulty = 'easy' | 'medium' | 'hard';
+export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+
+export interface BobbinPairCoordinate {
+  row: number;
+  col: number;
+}
+
+export interface BobbinPair {
+  from: BobbinPairCoordinate;
+  to: BobbinPairCoordinate;
+}
 
 export interface BobbinCell {
   type: "bobbin" | "pipe" | "hidden" | "empty";
@@ -23,6 +34,7 @@ export interface LevelData {
     rows: number;
     cols: number;
     cells: BobbinCell[][];
+    pairs?: BobbinPair[]; // Added for bobbin pairing
   };
   fabricArea: {
     cols: number;

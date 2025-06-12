@@ -1,12 +1,14 @@
 
 "use client";
 import type { Dispatch, ReactNode, SetStateAction} from 'react';
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Draft } from 'immer';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import type { LevelData, ValidationMessage } from '@/lib/types';
 import { createDefaultLevelData } from '@/lib/constants';
 import { validateLevelData } from '@/lib/validation';
+
+type ActiveEditorArea = 'bobbin' | 'fabric' | null;
 
 type LevelDataContextType = {
   levelData: LevelData;
@@ -19,6 +21,10 @@ type LevelDataContextType = {
   validationMessages: ValidationMessage[];
   setValidationMessages: Dispatch<SetStateAction<ValidationMessage[]>>;
   loadLevelData: (data: LevelData) => void;
+  lastInteractedFabricCol: number | null;
+  setLastInteractedFabricCol: Dispatch<SetStateAction<number | null>>;
+  activeEditorArea: ActiveEditorArea;
+  setActiveEditorArea: Dispatch<SetStateAction<ActiveEditorArea>>;
 };
 
 const LevelDataContext = createContext<LevelDataContextType | undefined>(undefined);
@@ -35,16 +41,25 @@ export const LevelDataProvider = ({ children }: { children: ReactNode }) => {
   } = useUndoRedo<LevelData>({ initialState: createDefaultLevelData() });
 
   const [validationMessages, setValidationMessages] = React.useState<ValidationMessage[]>([]);
+  const [lastInteractedFabricCol, setLastInteractedFabricCol] = useState<number | null>(null);
+  const [activeEditorArea, setActiveEditorArea] = useState<ActiveEditorArea>(null);
+
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey) {
         if (event.key === 'z' && !event.shiftKey) {
-          event.preventDefault();
-          if (canUndo) undo();
+          // Allow undo if not focused in an input/textarea that handles its own undo
+          if (!(document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement)) {
+            event.preventDefault();
+            if (canUndo) undo();
+          }
         } else if ((event.key === 'Z' && event.shiftKey) || (event.key === 'y' && !event.shiftKey)) {
-          event.preventDefault();
-          if (canRedo) redo();
+           // Allow redo if not focused in an input/textarea
+           if (!(document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement)) {
+            event.preventDefault();
+            if (canRedo) redo();
+          }
         }
       }
     };
@@ -61,6 +76,8 @@ export const LevelDataProvider = ({ children }: { children: ReactNode }) => {
 
   const loadLevelData = (data: LevelData) => {
     resetImmerLevelData(data);
+    setLastInteractedFabricCol(null); // Reset interaction state on new level load
+    setActiveEditorArea(null);
   };
 
   return (
@@ -76,6 +93,10 @@ export const LevelDataProvider = ({ children }: { children: ReactNode }) => {
         validationMessages,
         setValidationMessages,
         loadLevelData,
+        lastInteractedFabricCol,
+        setLastInteractedFabricCol,
+        activeEditorArea,
+        setActiveEditorArea,
       }}
     >
       {children}

@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
+const DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 
 export const HeaderToolbar: React.FC = () => {
   const { levelData, setLevelData, undo, redo, canUndo, canRedo, resetLevelData, loadLevelData } = useLevelData();
@@ -92,25 +92,23 @@ export const HeaderToolbar: React.FC = () => {
           throw new Error("Failed to read file content.");
         }
         const importedData = JSON.parse(text) as LevelData;
-        
-        // Basic structure validation
-        if (typeof importedData.level !== 'number' || 
-            !importedData.bobbinArea || 
+
+        if (typeof importedData.level !== 'number' ||
+            !importedData.bobbinArea ||
             !importedData.fabricArea) {
             throw new Error("Invalid JSON structure: missing level, bobbinArea, or fabricArea.");
         }
 
-        // Handle difficulty: default to 'easy' if missing, validate if present
         if (importedData.difficulty === undefined) {
-          importedData.difficulty = 'easy'; // Default to 'easy' if missing
+          importedData.difficulty = 'Easy'; // Default to 'Easy' if missing
           toast({
             title: "Import Info",
-            description: `Difficulty was missing in JSON, defaulted to 'easy'.`,
+            description: `Difficulty was missing in JSON, defaulted to 'Easy'.`,
           });
         } else if (!DIFFICULTIES.includes(importedData.difficulty)) {
           throw new Error(`Invalid difficulty value "${importedData.difficulty}". Must be one of: ${DIFFICULTIES.join(', ')}.`);
         }
-        
+
         loadLevelData(importedData);
         toast({ title: "Import Successful", description: `Level ${importedData.level} (${importedData.difficulty}) loaded from ${file.name}.` });
       } catch (error) {
@@ -166,8 +164,8 @@ export const HeaderToolbar: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {DIFFICULTIES.map(d => (
-                    <SelectItem key={d} value={d} className="capitalize">
-                      {d.charAt(0).toUpperCase() + d.slice(1)}
+                    <SelectItem key={d} value={d}>
+                      {d}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -193,7 +191,7 @@ export const HeaderToolbar: React.FC = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          
+
           <Button variant="outline" size="sm" onClick={handleImportClick}>
             <Upload className="mr-1 h-4 w-4" /> Import JSON
           </Button>
@@ -207,7 +205,7 @@ export const HeaderToolbar: React.FC = () => {
           />
 
           <Button variant="outline" size="sm" onClick={handleDownload}><Download className="mr-1 h-4 w-4" /> Download JSON</Button>
-          
+
           <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} aria-label="Undo (Ctrl+Z)">
             <Undo className="h-4 w-4" />
           </Button>
