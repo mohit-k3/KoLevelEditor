@@ -1,10 +1,58 @@
-
-export type BobbinColor = 'Red' | 'Blue' | 'Green' | 'Yellow' | 'Purple' | 'Orange' | 'Pink' | 'Brown' | 'Teal' | 'White' | 'DarkGreen' | 'Gray' | 'Black' | 'Magenta';
-export const FABRIC_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green'];
+export type BobbinColor =
+  | "LightPink"
+  | "Pink"
+  | "DarkPink"
+  | "LightBrown"
+  | "Brown"
+  | "Orange"
+  | "Yellow"
+  | "LightYellow"
+  | "Teal"
+  | "DarkTeal"
+  | "YellowGreen"
+  | "Green"
+  | "DarkGreen"
+  | "DarkBlue"
+  | "Blue"
+  | "Lavender"
+  | "Violet"
+  | "Purple"
+  | "White"
+  | "Grey"
+  | "Black"
+  | "DarkRed"
+  | "Red"
+  | "LightRed";
+export const FABRIC_COLORS: BobbinColor[] = ["Red", "Blue", "Green"];
 // Updated to match AVAILABLE_COLORS from constants.ts if they should be the same
-export const BOBBIN_AREA_COLORS: BobbinColor[] = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 'Teal', 'White', 'DarkGreen', 'Gray', 'Black', 'Magenta'];
+export const BOBBIN_AREA_COLORS: BobbinColor[] = [
+  "LightPink",
+  "Pink",
+  "DarkPink",
+  "LightBrown",
+  "Brown",
+  "Orange",
+  "Yellow",
+  "LightYellow",
+  "Teal",
+  "DarkTeal",
+  "YellowGreen",
+  "Green",
+  "DarkGreen",
+  "DarkBlue",
+  "Blue",
+  "Lavender",
+  "Violet",
+  "Purple",
+  "White",
+  "Grey",
+  "Black",
+  "DarkRed",
+  "Red",
+  "LightRed",
+];
 
-export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+export type Difficulty = "Easy" | "Medium" | "Hard" | "VeryHard";
 
 export interface BobbinPairCoordinate {
   row: number;
@@ -45,6 +93,6 @@ export interface LevelData {
 
 export interface ValidationMessage {
   id: string;
-  type: 'error' | 'warning';
+  type: "error" | "warning";
   message: string;
 }

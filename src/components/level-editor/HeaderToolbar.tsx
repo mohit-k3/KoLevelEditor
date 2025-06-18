@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
+const DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard', 'VeryHard'];
 
 export const HeaderToolbar: React.FC = () => {
   const { levelData, setLevelData, undo, redo, canUndo, canRedo, resetLevelData, loadLevelData } = useLevelData();

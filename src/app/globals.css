@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,26 +7,27 @@ body {
 }
 
 @layer base {
-  :root {
-    --background: 220 20% 96.1%; /* Light Gray #F5F5F5 */
-    --foreground: 220 10% 10%; /* Dark Gray for text */
+  :root,
+  .dark {
+    --background: 220 20% 96.1%;
+    --foreground: 220 10% 10%;
     --card: 0 0% 100%;
     --card-foreground: 220 10% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 10% 10%;
-    --primary: 262 49% 50%; /* Deep Purple #673AB7 */
-    --primary-foreground: 0 0% 100%; /* White */
-    --secondary: 220 15% 90%; /* Lighter gray for secondary elements */
-    --secondary-foreground: 220 10% 20%; /* Darker gray for text on secondary */
-    --muted: 220 15% 85%; /* Muted gray */
-    --muted-foreground: 220 10% 40%; /* Muted text */
-    --accent: 36 100% 50%; /* Bright Orange #FF9800 */
-    --accent-foreground: 220 10% 10%; /* Dark text on accent */
+    --primary: 262 49% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 90%;
+    --secondary-foreground: 220 10% 20%;
+    --muted: 220 15% 85%;
+    --muted-foreground: 220 10% 40%;
+    --accent: 36 100% 50%;
+    --accent-foreground: 220 10% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 85%; /* Border color */
-    --input: 220 13% 91%; /* Input background */
-    --ring: 262 49% 50%; /* Primary color for focus rings */
+    --border: 220 13% 85%;
+    --input: 220 13% 91%;
+    --ring: 262 49% 50%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
@@ -35,21 +35,31 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    /* Specific Knit Out colors */
-    --knitout-red: 0 100% 50%;
-    --knitout-blue: 198 100% 56%;
-    --knitout-green: 120 60% 35%;
-    --knitout-yellow: 60 100% 50%;
-    --knitout-purple: 274 80% 45%;
-    --knitout-orange: 30 100% 50%;
-    --knitout-pink: 330 100% 70%;
-    --knitout-brown: 30 60% 40%;
-    --knitout-teal: 180 60% 40%;
-    --knitout-white: 0 0% 100%; 
-    --knitout-dark-green: 120 60% 25%;
-    --knitout-gray: 0 0% 50%;
-    --knitout-black: 0 0% 20%;
-    --knitout-magenta: 300 100% 50%;
+    /* FULL KnitOut Colors (based on hex to HSL) */
+    --knitout-light-pink: 330 51% 76%; /* #DD7AB1 */
+    --knitout-pink: 340 54% 55%; /* #CD4890 */
+    --knitout-dark-pink: 327 53% 41%; /* #A32466 */
+    --knitout-light-brown: 30 45% 47%; /* #B17D39 */
+    --knitout-brown: 30 53% 37%; /* #974723 */
+    --knitout-orange: 30 100% 45%; /* #E58800 */
+    --knitout-yellow: 50 97% 52%; /* #F9DD04 */
+    --knitout-light-yellow: 47 84% 76%; /* #F2E98A */
+    --knitout-teal: 172 100% 41%; /* #00D498 */
+    --knitout-dark-teal: 174 100% 27%; /* #008C77 */
+    --knitout-yellow-green: 71 72% 46%; /* #A5D21C */
+    --knitout-green: 103 74% 48%; /* #44D816 */
+    --knitout-dark-green: 133 74% 26%; /* #147319 */
+    --knitout-dark-blue: 222 71% 44%; /* #2044C5 */
+    --knitout-blue: 194 84% 52%; /* #1CB7E9 */
+    --knitout-lavender: 248 62% 69%; /* #8C79E2 */
+    --knitout-violet: 256 45% 51%; /* #734BB6 */
+    --knitout-purple: 292 60% 59%; /* #B93ED1 */
+    --knitout-white: 0 0% 96%; /* #F4F4F4 */
+    --knitout-grey: 0 0% 41%; /* #676767 */
+    --knitout-black: 0 0% 25%; /* #414141 */
+    --knitout-dark-red: 0 78% 30%; /* #8E1111 */
+    --knitout-red: 0 83% 56%; /* #EE3030 */
+    --knitout-light-red: 0 71% 63%; /* #D64F4D */
   }
 
   .dark {
