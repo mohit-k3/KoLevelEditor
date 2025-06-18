@@ -1,9 +1,11 @@
+
 import { HeaderToolbar } from '@/components/level-editor/HeaderToolbar';
 import { BobbinGridEditor } from '@/components/level-editor/BobbinGridEditor';
 import { FabricGridEditor } from '@/components/level-editor/FabricGridEditor';
 import { LiveVisualizer } from '@/components/level-editor/LiveVisualizer';
 import { ValidationPanel } from '@/components/level-editor/ValidationPanel';
 import { JsonPreview } from '@/components/level-editor/JsonPreview';
+import { ColorBalanceSummary } from '@/components/level-editor/ColorBalanceSummary';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -31,6 +33,9 @@ export default function LevelEditorPage() {
                 <FabricGridEditor />
                 <LiveVisualizer editorType="fabric" />
               </div>
+            </div>
+            <div className="mt-6">
+              <ColorBalanceSummary />
             </div>
           </TabsContent>
 
