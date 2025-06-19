@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label';
 import { ColorPicker } from '@/components/shared/ColorPicker';
 import { NumberSpinner } from '@/components/shared/NumberSpinner';
 import { cn } from '@/lib/utils';
-import { useLevelData } from '@/contexts/LevelDataContext'; // Import useLevelData
+import { useLevelData } from '@/contexts/LevelDataContext';
+import { EyeOffIcon, SnowflakeIcon } from 'lucide-react'; 
+
 
 interface BobbinCellEditorProps {
   cell: BobbinCell;
@@ -28,6 +30,7 @@ const cellTypeDisplay: Record<BobbinCell['type'], string> = {
   pipe: "Pipe",
   hidden: "Hidden",
   empty: "Empty",
+  ice: "Frozen", 
 };
 
 const MAX_PIPE_COLORS = 5; 
@@ -42,11 +45,11 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   isSelectedForPairing,
   isActuallyPaired
 }) => {
-  const { setActiveEditorArea } = useLevelData(); // Get setActiveEditorArea
+  const { setActiveEditorArea } = useLevelData();
 
   const handleTypeChange = (newType: BobbinCell['type']) => {
     const newCellData: BobbinCell = { type: newType };
-    if (newType === 'bobbin' || newType === 'hidden') {
+    if (newType === 'bobbin' || newType === 'hidden' || newType === 'ice') { 
       newCellData.color = cell.color || AVAILABLE_COLORS[0];
     } else if (newType === 'pipe') {
       if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) {
@@ -97,20 +100,25 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             aria-label={`${cellTypeDisplay[cell.type]} cell, color ${cell.color || 'none'}`}
           >
             {cell.type === 'bobbin' && <SpoolIcon className="w-4 h-4 text-white mix-blend-difference" />}
-             {cell.type === 'hidden' && <EyeOffIcon className="w-4 h-4 text-white mix-blend-difference" />}
+            {cell.type === 'hidden' && <EyeOffIcon className="w-4 h-4 text-white mix-blend-difference" />}
+          </div>
+        );
+      case 'ice': 
+        return (
+          <div
+            className="w-full h-full rounded-sm flex items-center justify-center"
+            style={{ backgroundColor: cell.color ? COLOR_MAP[cell.color] : 'transparent' }}
+            aria-label={`${cellTypeDisplay[cell.type]} cell, color ${cell.color || 'none'}`}
+          >
+            <SnowflakeIcon className="w-4 h-4 text-white mix-blend-difference" />
           </div>
         );
       case 'pipe':
         return (
           <div 
-            className={cn(
-              "w-full h-full rounded-sm border-2 flex items-center justify-center"
-            )}
+            className="w-full h-full rounded-sm border-2 flex items-center justify-center"
             style={{ 
               borderColor: cell.colors && cell.colors.length > 0 ? COLOR_MAP[cell.colors[0]] : 'hsl(var(--border))',
-              // Updated to show multiple colors as a simple gradient or sectioned background if desired
-              // For simplicity, we'll keep the border approach for now, which implies 2 colors.
-              // Visualizer handles the full stripe display.
               boxShadow: cell.colors && cell.colors.length > 1 ? `0 0 0 2px ${COLOR_MAP[cell.colors[1]]} inset` : 'none'
             }}
             aria-label={`Pipe cell, colors ${cell.colors?.join(', ') || 'none'}`}
@@ -120,7 +128,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
         );
       case 'empty':
       default:
-        return <div className={cn("w-full h-full bg-muted rounded-sm")} aria-label="Empty cell"></div>;
+        return <div className="w-full h-full bg-muted rounded-sm" aria-label="Empty cell"></div>;
     }
   };
 
@@ -129,7 +137,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
       event.preventDefault(); 
       onPairingClick(rowIndex, colIndex);
     } else {
-      setActiveEditorArea('bobbin'); // Set active area when popover is about to open
+      setActiveEditorArea('bobbin'); 
     }
   };
 
@@ -159,7 +167,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             onValueChange={(value) => handleTypeChange(value as BobbinCell['type'])}
             className="mt-1 grid grid-cols-2 gap-2"
           >
-            {(['bobbin', 'pipe', 'hidden', 'empty'] as BobbinCell['type'][]).map(type => (
+            {(['bobbin', 'pipe', 'hidden', 'empty', 'ice'] as BobbinCell['type'][]).map(type => ( 
               <div key={type} className="flex items-center space-x-2">
                 <RadioGroupItem value={type} id={`type-${type}-${rowIndex}-${colIndex}`} />
                 <Label htmlFor={`type-${type}-${rowIndex}-${colIndex}`} className="text-sm">{cellTypeDisplay[type]}</Label>
@@ -168,7 +176,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           </RadioGroup>
         </div>
 
-        {(cell.type === 'bobbin' || cell.type === 'hidden') && (
+        {(cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') && ( 
           <div>
             <Label htmlFor={`color-${rowIndex}-${colIndex}`} className="text-sm font-medium">Color</Label>
             <ColorPicker
@@ -240,26 +248,6 @@ function SpoolIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="M4 16h16" />
       <ellipse cx="12" cy="12" rx="8" ry="4" />
       <path d="M8 7.5c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v9c0 1.1-.9 2-2 2H10c-1.1 0-2-.9-2-2V7.5Z" />
-    </svg>
-  );
-}
-
-function EyeOffIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-      <line x1="2" x2="22" y1="2" y2="22" />
     </svg>
   );
 }

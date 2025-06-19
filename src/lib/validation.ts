@@ -35,14 +35,14 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
   });
 
   const effectiveBobbinColorCounts = new Map<BobbinColor, number>();
-  const allBobbinColorsPresent = new Set<BobbinColor>(); // Includes bobbins, hidden bobbins, and pipe colors
-  const pairedCellCoordinates = new Set<string>(); // Store "row,col" strings
+  const allBobbinColorsPresent = new Set<BobbinColor>(); 
+  const pairedCellCoordinates = new Set<string>(); 
 
   data.bobbinArea.cells.forEach((row, rIdx) => {
     row.forEach((cell, cIdx) => {
       const cellPos = `(R${rIdx + 1}, C${cIdx + 1})`;
 
-      if (cell.type === 'bobbin' || cell.type === 'hidden') {
+      if (cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') { // Added 'ice'
         if (!cell.color) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "${cell.type}" is missing a color.` });
         } else if (!AVAILABLE_COLORS.includes(cell.color) && !/^#[0-9A-Fa-f]{6}$/.test(cell.color)) {
@@ -78,25 +78,21 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
     data.bobbinArea.pairs.forEach((pair, pIdx) => {
       const pairLabel = `Pair ${pIdx + 1} [(${pair.from.row + 1},${pair.from.col + 1}) to (${pair.to.row + 1},${pair.to.col + 1})]`;
 
-      // Check bounds
       [pair.from, pair.to].forEach(coord => {
         if (coord.row < 0 || coord.row >= bobbinRows || coord.col < 0 || coord.col >= bobbinCols) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pairLabel} has out-of-bounds coordinate (R${coord.row + 1},C${coord.col + 1}).`});
         } else {
-          // Check if paired cell is a bobbin or hidden bobbin
           const cell = data.bobbinArea.cells[coord.row]?.[coord.col];
           if (cell?.type !== 'bobbin' && cell?.type !== 'hidden') { 
-             messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: ${pairLabel} involves a non-bobbin cell (R${coord.row+1},C${coord.col+1}) of type "${cell?.type}". Only bobbins or hidden bobbins should be paired.`});
+             messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: ${pairLabel} involves a non-bobbin/hidden cell (R${coord.row+1},C${coord.col+1}) of type "${cell?.type}". Only bobbins or hidden bobbins should be paired.`});
           }
         }
       });
 
-      // Check if from and to are the same
       if (isCoordEqual(pair.from, pair.to)) {
         messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pairLabel} connects a bobbin to itself.`});
       }
 
-      // Check for duplicate pairing (bobbin in more than one pair)
       const fromKey = `${pair.from.row},${pair.from.col}`;
       const toKey = `${pair.to.row},${pair.to.col}`;
       if (pairedCellCoordinates.has(fromKey)) {
@@ -132,7 +128,6 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
     });
   });
 
-  // Data Integrity Check: Fabric colors must have corresponding bobbins of any type (bobbin, hidden, or pipe)
   const allFabricColorsUsed = new Set<BobbinColor>();
     data.fabricArea.columns.flat().forEach(block => {
         if (block?.color) allFabricColorsUsed.add(block.color);
@@ -140,21 +135,20 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
 
   allFabricColorsUsed.forEach(fc => {
     if (!allBobbinColorsPresent.has(fc)) { 
-       messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Data Integrity Warning: Fabric uses color "${fc}", but no bobbin (of any type: bobbin, hidden, or pipe) with this color exists in the Bobbin Area.` });
+       messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Data Integrity Warning: Fabric uses color "${fc}", but no bobbin (of any type: bobbin, hidden, ice, or pipe) with this color exists in the Bobbin Area.` });
     }
   });
 
-  // New Validation: Effective bobbin count * 3 === Total Fabric count
   AVAILABLE_COLORS.forEach(color => {
     const effectiveBobbinCount = effectiveBobbinColorCounts.get(color) || 0;
-    const fabricCount = totalFabricColorCounts.get(color) || 0; // Changed from visibleFabricColorCounts
+    const fabricCount = totalFabricColorCounts.get(color) || 0; 
     const expectedFabricCount = effectiveBobbinCount * 3;
 
     if (fabricCount !== expectedFabricCount) {
       messages.push({ 
         id: `val-${idCounter++}`, 
         type: 'error', 
-        message: `Color Balance "${color}": Effective bobbin count (from bobbins, hidden bobbins, and pipes: ${effectiveBobbinCount}) x 3 = ${expectedFabricCount}. Expected ${expectedFabricCount} total fabric blocks, but found ${fabricCount}.` 
+        message: `Color Balance "${color}": Effective bobbin count (from bobbins, hidden, ice, and pipes: ${effectiveBobbinCount}) x 3 = ${expectedFabricCount}. Expected ${expectedFabricCount} total fabric blocks, but found ${fabricCount}.` 
       });
     }
   });
