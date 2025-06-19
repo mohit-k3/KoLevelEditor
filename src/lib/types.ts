@@ -1,3 +1,4 @@
+
 export type BobbinColor =
   | "LightPink"
   | "Pink"
@@ -22,9 +23,11 @@ export type BobbinColor =
   | "Black"
   | "DarkRed"
   | "Red"
-  | "LightRed";
+  | "LightRed"
+  | "Magenta"; // Added Magenta from previous step
+
 export const FABRIC_COLORS: BobbinColor[] = ["Red", "Blue", "Green"];
-// Updated to match AVAILABLE_COLORS from constants.ts if they should be the same
+
 export const BOBBIN_AREA_COLORS: BobbinColor[] = [
   "LightPink",
   "Pink",
@@ -50,6 +53,7 @@ export const BOBBIN_AREA_COLORS: BobbinColor[] = [
   "DarkRed",
   "Red",
   "LightRed",
+  "Magenta",
 ];
 
 export type Difficulty = "Easy" | "Medium" | "Hard" | "VeryHard";
@@ -65,8 +69,8 @@ export interface BobbinPair {
 }
 
 export interface BobbinCell {
-  type: "bobbin" | "pipe" | "hidden" | "empty";
-  color?: BobbinColor; // For "bobbin", "hidden"
+  type: "bobbin" | "pipe" | "hidden" | "empty" | "ice"; // Added 'ice'
+  color?: BobbinColor; // For "bobbin", "hidden", "ice"
   colors?: BobbinColor[]; // For "pipe"
 }
 
@@ -82,12 +86,12 @@ export interface LevelData {
     rows: number;
     cols: number;
     cells: BobbinCell[][];
-    pairs?: BobbinPair[]; // Added for bobbin pairing
+    pairs?: BobbinPair[];
   };
   fabricArea: {
     cols: number;
     maxFabricHeight: number;
-    columns: FabricBlockData[][]; // Each column array contains only actual blocks, sparse
+    columns: FabricBlockData[][];
   };
 }
 
