@@ -2,7 +2,7 @@
 import type { LevelData, ValidationMessage, BobbinColor, FabricBlockData, Difficulty, BobbinPairCoordinate } from './types';
 import { AVAILABLE_COLORS, LIMITED_FABRIC_COLORS } from './constants';
 
-const VALID_DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
+const VALID_DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard', 'VeryHard'];
 
 function isCoordEqual(c1: BobbinPairCoordinate, c2: BobbinPairCoordinate): boolean {
   return c1.row === c2.row && c1.col === c2.col;
@@ -115,7 +115,7 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
     messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Fabric Area: Declared columns (${data.fabricArea.cols}) do not match actual columns array length (${data.fabricArea.columns.length}).` });
   }
 
-  const visibleFabricColorCounts = new Map<BobbinColor, number>();
+  const totalFabricColorCounts = new Map<BobbinColor, number>();
   data.fabricArea.columns.forEach((column, cIdx) => {
     if (column.length > data.fabricArea.maxFabricHeight) {
       messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Fabric Area: Column ${cIdx + 1} actual block count (${column.length}) exceeds max fabric height (${data.fabricArea.maxFabricHeight}).` });
@@ -126,8 +126,8 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
       } else if (!LIMITED_FABRIC_COLORS.includes(block.color) && !/^#[0-9A-Fa-f]{6}$/.test(block.color)) {
        // messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Fabric Area: Block at (Col ${cIdx + 1}, Stack pos ${bIdx + 1}) has an undefined color "${block.color}".` });
       }
-      if (block.color && !block.hidden) { 
-        visibleFabricColorCounts.set(block.color, (visibleFabricColorCounts.get(block.color) || 0) + 1);
+      if (block.color) { 
+        totalFabricColorCounts.set(block.color, (totalFabricColorCounts.get(block.color) || 0) + 1);
       }
     });
   });
@@ -144,17 +144,17 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
     }
   });
 
-  // New Validation: Effective bobbin count * 3 === Fabric count (for visible fabric)
+  // New Validation: Effective bobbin count * 3 === Total Fabric count
   AVAILABLE_COLORS.forEach(color => {
     const effectiveBobbinCount = effectiveBobbinColorCounts.get(color) || 0;
-    const fabricCount = visibleFabricColorCounts.get(color) || 0;
+    const fabricCount = totalFabricColorCounts.get(color) || 0; // Changed from visibleFabricColorCounts
     const expectedFabricCount = effectiveBobbinCount * 3;
 
     if (fabricCount !== expectedFabricCount) {
       messages.push({ 
         id: `val-${idCounter++}`, 
         type: 'error', 
-        message: `Color Balance "${color}": Effective bobbin count (from bobbins, hidden bobbins, and pipes: ${effectiveBobbinCount}) x 3 = ${expectedFabricCount}. Expected ${expectedFabricCount} visible fabric blocks, but found ${fabricCount}.` 
+        message: `Color Balance "${color}": Effective bobbin count (from bobbins, hidden bobbins, and pipes: ${effectiveBobbinCount}) x 3 = ${expectedFabricCount}. Expected ${expectedFabricCount} total fabric blocks, but found ${fabricCount}.` 
       });
     }
   });
