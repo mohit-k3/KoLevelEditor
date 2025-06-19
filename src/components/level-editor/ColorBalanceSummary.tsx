@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 interface ColorCounts {
   effectiveBobbins: number;
-  visibleFabric: number;
+  totalFabricBlocks: number; // Changed from visibleFabric
   expectedFabric: number;
 }
 
@@ -20,7 +20,7 @@ const calculateColorCounts = (levelData: LevelData): Map<BobbinColor, ColorCount
   const counts = new Map<BobbinColor, ColorCounts>();
 
   AVAILABLE_COLORS.forEach(color => {
-    counts.set(color, { effectiveBobbins: 0, visibleFabric: 0, expectedFabric: 0 });
+    counts.set(color, { effectiveBobbins: 0, totalFabricBlocks: 0, expectedFabric: 0 });
   });
 
   // Calculate effective bobbin counts
@@ -44,13 +44,13 @@ const calculateColorCounts = (levelData: LevelData): Map<BobbinColor, ColorCount
     });
   });
 
-  // Calculate visible fabric counts
+  // Calculate total fabric blocks counts (including hidden)
   levelData.fabricArea.columns.forEach(column => {
     column.forEach(block => {
-      if (block.color && !block.hidden) {
+      if (block.color) { // Count all blocks with a color, regardless of hidden status
         const currentColor = counts.get(block.color);
         if (currentColor) {
-          currentColor.visibleFabric++;
+          currentColor.totalFabricBlocks++;
         }
       }
     });
@@ -84,7 +84,7 @@ export const ColorBalanceSummary: React.FC = () => {
               <TableRow>
                 <TableHead>Color</TableHead>
                 <TableHead className="text-center">Bobbins (Effective)</TableHead>
-                <TableHead className="text-center">Fabric (Actual)</TableHead>
+                <TableHead className="text-center">Fabric (Total)</TableHead> {/* Changed from Fabric (Actual) */}
                 <TableHead className="text-center">Fabric (Expected)</TableHead>
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
@@ -94,7 +94,7 @@ export const ColorBalanceSummary: React.FC = () => {
                 const data = colorBalanceData.get(color);
                 if (!data) return null;
 
-                const isBalanced = data.visibleFabric === data.expectedFabric;
+                const isBalanced = data.totalFabricBlocks === data.expectedFabric;
 
                 return (
                   <TableRow key={color}>
@@ -113,7 +113,7 @@ export const ColorBalanceSummary: React.FC = () => {
                       "text-center font-medium",
                       isBalanced ? "text-green-600 dark:text-green-400" : "text-destructive"
                     )}>
-                      {data.visibleFabric}
+                      {data.totalFabricBlocks} {/* Changed from data.visibleFabric */}
                     </TableCell>
                     <TableCell className="text-center">{data.expectedFabric}</TableCell>
                     <TableCell className="text-center">
@@ -133,3 +133,4 @@ export const ColorBalanceSummary: React.FC = () => {
     </Card>
   );
 };
+
