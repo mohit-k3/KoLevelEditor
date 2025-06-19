@@ -56,7 +56,7 @@ export const BOBBIN_AREA_COLORS: BobbinColor[] = [
   "Magenta",
 ];
 
-export type Difficulty = "Easy" | "Medium" | "Hard" | "VeryHard";
+export type Difficulty = "Easy" | "Medium" | "Hard";
 
 export interface BobbinPairCoordinate {
   row: number;

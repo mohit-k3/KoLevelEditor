@@ -2,7 +2,7 @@
 import type { LevelData, ValidationMessage, BobbinColor, FabricBlockData, Difficulty, BobbinPairCoordinate } from './types';
 import { AVAILABLE_COLORS, LIMITED_FABRIC_COLORS } from './constants';
 
-const VALID_DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard', 'VeryHard'];
+const VALID_DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 
 function isCoordEqual(c1: BobbinPairCoordinate, c2: BobbinPairCoordinate): boolean {
   return c1.row === c2.row && c1.col === c2.col;
@@ -42,7 +42,7 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
     row.forEach((cell, cIdx) => {
       const cellPos = `(R${rIdx + 1}, C${cIdx + 1})`;
 
-      if (cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') { // Added 'ice'
+      if (cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') {
         if (!cell.color) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "${cell.type}" is missing a color.` });
         } else if (!AVAILABLE_COLORS.includes(cell.color) && !/^#[0-9A-Fa-f]{6}$/.test(cell.color)) {
@@ -156,4 +156,3 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
 
   return messages;
 };
-

@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard', 'VeryHard'];
+const DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 
 export const HeaderToolbar: React.FC = () => {
   const { levelData, setLevelData, undo, redo, canUndo, canRedo, resetLevelData, loadLevelData } = useLevelData();
@@ -62,7 +62,7 @@ export const HeaderToolbar: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `level_${levelData.level || 'untitled'}_${levelData.difficulty}.json`;
+      a.download = `level_${levelData.level || 'untitled'}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -100,7 +100,7 @@ export const HeaderToolbar: React.FC = () => {
         }
 
         if (importedData.difficulty === undefined) {
-          importedData.difficulty = 'Easy'; // Default to 'Easy' if missing
+          importedData.difficulty = 'Easy'; 
           toast({
             title: "Import Info",
             description: `Difficulty was missing in JSON, defaulted to 'Easy'.`,
