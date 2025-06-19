@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 interface ColorCounts {
   effectiveBobbins: number;
-  totalFabricBlocks: number; // Changed from visibleFabric
+  totalFabricBlocks: number;
   expectedFabric: number;
 }
 
@@ -26,7 +26,7 @@ const calculateColorCounts = (levelData: LevelData): Map<BobbinColor, ColorCount
   // Calculate effective bobbin counts
   levelData.bobbinArea.cells.forEach(row => {
     row.forEach(cell => {
-      if (cell.type === 'bobbin' || cell.type === 'hidden') {
+      if (cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') {
         if (cell.color) {
           const currentColor = counts.get(cell.color);
           if (currentColor) {
@@ -84,7 +84,7 @@ export const ColorBalanceSummary: React.FC = () => {
               <TableRow>
                 <TableHead>Color</TableHead>
                 <TableHead className="text-center">Bobbins (Effective)</TableHead>
-                <TableHead className="text-center">Fabric (Total)</TableHead> {/* Changed from Fabric (Actual) */}
+                <TableHead className="text-center">Fabric (Total)</TableHead>
                 <TableHead className="text-center">Fabric (Expected)</TableHead>
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
@@ -113,7 +113,7 @@ export const ColorBalanceSummary: React.FC = () => {
                       "text-center font-medium",
                       isBalanced ? "text-green-600 dark:text-green-400" : "text-destructive"
                     )}>
-                      {data.totalFabricBlocks} {/* Changed from data.visibleFabric */}
+                      {data.totalFabricBlocks}
                     </TableCell>
                     <TableCell className="text-center">{data.expectedFabric}</TableCell>
                     <TableCell className="text-center">
