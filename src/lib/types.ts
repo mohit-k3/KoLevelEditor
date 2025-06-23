@@ -25,7 +25,7 @@ export type BobbinColor =
   | "Red"
   | "LightRed";
 
-export type Difficulty = "Easy" | "Medium" | "Hard";
+export type Difficulty = "Easy" | "Medium" | "Hard" | "VeryHard";
 
 export interface BobbinPairCoordinate {
   row: number;

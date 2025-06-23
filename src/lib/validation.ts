@@ -2,7 +2,7 @@
 import type { LevelData, ValidationMessage, BobbinColor, FabricBlockData, Difficulty, BobbinPairCoordinate, BobbinChain } from './types';
 import { AVAILABLE_COLORS, LIMITED_FABRIC_COLORS } from './constants';
 
-const VALID_DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
+const VALID_DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard', 'VeryHard'];
 
 function isCoordEqual(c1: BobbinPairCoordinate, c2: BobbinPairCoordinate): boolean {
   return c1.row === c2.row && c1.col === c2.col;
