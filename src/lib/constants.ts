@@ -99,7 +99,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "empty" },
         { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Blue" },
-        { type: "hidden", color: "Red" },
+        { type: "bobbin", color: "Red", hidden: true },
         { type: "bobbin", color: "Green" },
       ],
       [
@@ -115,7 +115,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "bobbin", color: "Red" },
         { type: "pipe", colors: ["Red", "Blue", "Green"] },
         { type: "bobbin", color: "Blue" },
-        { type: "hidden", color: "Green" },
+        { type: "bobbin", color: "Green", hidden: true },
         { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Blue" },
       ],
@@ -126,7 +126,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "pipe", colors: ["Red", "Blue", "Green"] },
         { type: "bobbin", color: "Blue" },
         { type: "bobbin", color: "Green" },
-        { type: "hidden", color: "Red" },
+        { type: "bobbin", color: "Red", hidden: true },
       ],
       [
         { type: "pipe", colors: ["Red", "Blue", "Green"] },
@@ -144,7 +144,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "bobbin", color: "Blue" },
         { type: "bobbin", color: "Green" },
         { type: "bobbin", color: "Red" },
-        { type: "hidden", color: "Blue", has: "chain-key" },
+        { type: "bobbin", color: "Blue", has: "chain-key", hidden: true },
       ],
     ],
     pairs: [

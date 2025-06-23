@@ -61,68 +61,62 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
               : cell.has === 'pin-tail'
               ? <Target x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
               : null;
-
-          if (cell.type === 'hidden' && cell.color) {
-            cellElement = (
+          
+          if (cell.type === 'bobbin') {
+            const bobbinColor = COLOR_MAP[cell.color || ''] || 'transparent';
+            const spool = (
               <>
-              <rect 
-                x={x + 0.5} 
-                y={y + 0.5} 
-                width={CELL_SIZE - 1} 
-                height={CELL_SIZE - 1} 
-                fill={COLOR_MAP[cell.color] || cell.color} 
-                opacity={0.3} 
-                stroke={COLOR_MAP[cell.color] || cell.color} 
-                strokeWidth="1.5" 
-                strokeDasharray="3 3" 
-              />
-              {accessoryIcon}
-              </>
-            );
-          }
-
-          if (cell.type === 'bobbin' && cell.color) {
-            const spoolColor = COLOR_MAP[cell.color] || cell.color;
-            cellElement = (
-              <>
-              <g transform={`translate(${x + CELL_SIZE / 2}, ${y + CELL_SIZE / 2})`}>
                 <rect 
                   x={-CELL_SIZE * SPOOL_WIDTH_RATIO / 2} 
                   y={-CELL_SIZE / 2 * (1 - SPOOL_END_HEIGHT_RATIO)} 
                   width={CELL_SIZE * SPOOL_WIDTH_RATIO} 
                   height={CELL_SIZE * (1 - SPOOL_END_HEIGHT_RATIO * 2)}
-                  fill={spoolColor}
+                  fill={bobbinColor}
                   rx="2"
                 />
-                <rect x={-CELL_SIZE / 2} y={-CELL_SIZE / 2} width={CELL_SIZE} height={CELL_SIZE * SPOOL_END_HEIGHT_RATIO} fill={spoolColor} opacity="0.7" rx="1"/>
-                <rect x={-CELL_SIZE / 2} y={CELL_SIZE / 2 * (1-SPOOL_END_HEIGHT_RATIO*2)} width={CELL_SIZE} height={CELL_SIZE * SPOOL_END_HEIGHT_RATIO} fill={spoolColor} opacity="0.7" rx="1"/>
-              </g>
-              {accessoryIcon}
+                <rect x={-CELL_SIZE / 2} y={-CELL_SIZE / 2} width={CELL_SIZE} height={CELL_SIZE * SPOOL_END_HEIGHT_RATIO} fill={bobbinColor} opacity="0.7" rx="1"/>
+                <rect x={-CELL_SIZE / 2} y={CELL_SIZE / 2 * (1-SPOOL_END_HEIGHT_RATIO*2)} width={CELL_SIZE} height={CELL_SIZE * SPOOL_END_HEIGHT_RATIO} fill={bobbinColor} opacity="0.7" rx="1"/>
               </>
             );
-          }
-          
-          if (cell.type === 'ice' && cell.color) { 
-            const iceColor = COLOR_MAP[cell.color] || cell.color;
-            cellElement = (
-              <g>
-                <rect 
-                  x={x} 
-                  y={y} 
+            const iceBlock = (
+              <rect 
+                  x={0} 
+                  y={0} 
                   width={CELL_SIZE} 
                   height={CELL_SIZE} 
-                  fill={iceColor} 
+                  fill={bobbinColor} 
                   rx="2"
                 />
-                <SnowflakeIcon 
-                  x={x + CELL_SIZE / 2 - 8}
-                  y={y + CELL_SIZE / 2 - 8}
+            );
+            const iceIcon = (
+               <SnowflakeIcon 
+                  x={CELL_SIZE / 2 - 8}
+                  y={CELL_SIZE / 2 - 8}
                   width="16" 
                   height="16" 
                   color="hsl(var(--primary-foreground))"
                   opacity="0.75"
                 />
-                 {accessoryIcon}
+            );
+
+            cellElement = (
+              <g transform={`translate(${x}, ${y})`} opacity={cell.hidden ? 0.3 : 1}>
+                {cell.ice ? iceBlock : <g transform={`translate(${CELL_SIZE / 2}, ${CELL_SIZE / 2})`}>{spool}</g>}
+                {cell.hidden && (
+                  <rect 
+                    x="0.5" 
+                    y="0.5" 
+                    width={CELL_SIZE - 1} 
+                    height={CELL_SIZE - 1} 
+                    fill="none"
+                    stroke={bobbinColor} 
+                    strokeWidth="1.5" 
+                    strokeDasharray="3 3"
+                    rx="2"
+                  />
+                )}
+                {cell.ice && iceIcon}
+                <g transform={`translate(${-x}, ${-y})`}>{accessoryIcon}</g>
               </g>
             );
           }

@@ -2,7 +2,7 @@
 import type { LevelData, ValidationMessage, BobbinColor, FabricBlockData, Difficulty, BobbinPairCoordinate, BobbinChain } from './types';
 import { AVAILABLE_COLORS, LIMITED_FABRIC_COLORS } from './constants';
 
-const VALID_DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard', 'VeryHard'];
+const VALID_DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 
 function isCoordEqual(c1: BobbinPairCoordinate, c2: BobbinPairCoordinate): boolean {
   return c1.row === c2.row && c1.col === c2.col;
@@ -53,19 +53,15 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
     row.forEach((cell, cIdx) => {
       const cellPos = `(R${rIdx + 1}, C${cIdx + 1})`;
 
-      if (cell.has === 'lock') lockCount++;
-      if (cell.has === 'key') keyCount++;
-      if (cell.has === 'chain-key') chainKeyCount++;
-      if (cell.has === 'pin-head') pinHeadCount++;
-      if (cell.has === 'pin-tail') pinTailCount++;
+      if (cell.type === 'bobbin') {
+        if (cell.has === 'lock') lockCount++;
+        if (cell.has === 'key') keyCount++;
+        if (cell.has === 'chain-key') chainKeyCount++;
+        if (cell.has === 'pin-head') pinHeadCount++;
+        if (cell.has === 'pin-tail') pinTailCount++;
 
-      if (cell.has && (cell.type === 'empty' || cell.type === 'pipe')) {
-        messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "${cell.type}" cannot have an accessory.`});
-      }
-      
-      if (cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') {
         if (!cell.color) {
-          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "${cell.type}" is missing a color.` });
+          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "bobbin" is missing a color.` });
         } else if (!AVAILABLE_COLORS.includes(cell.color)) {
           // messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: Cell ${cellPos} has an undefined color "${cell.color}".` });
         }
@@ -74,6 +70,11 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
           effectiveBobbinColorCounts.set(cell.color, (effectiveBobbinColorCounts.get(cell.color) || 0) + 1);
         }
       }
+      
+      if (cell.has && cell.type !== 'bobbin') {
+        messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "${cell.type}" cannot have an accessory.`});
+      }
+      
       if (cell.type === 'pipe') {
         if (!cell.colors || cell.colors.length < 2) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Pipe cell ${cellPos} must specify at least 2 colors.` });
@@ -114,7 +115,7 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pairLabel} has out-of-bounds coordinate (R${coord.row + 1},C${coord.col + 1}).`});
         } else {
           const cell = data.bobbinArea.cells[coord.row]?.[coord.col];
-          if (cell?.type === 'empty' || cell?.type === 'pipe') { 
+          if (cell?.type !== 'bobbin') { 
              messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pairLabel} involves an un-pairable cell (R${coord.row+1},C${coord.col+1}) of type "${cell?.type}".`});
           }
         }
@@ -183,7 +184,7 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
             }
 
             const cell = data.bobbinArea.cells[coord.row][coord.col];
-            if (cell.type === 'empty' || cell.type === 'pipe') {
+            if (cell.type !== 'bobbin') {
                  messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Bobbin ${coordLabel} in ${chainLabel} is of an un-chainable type "${cell.type}".`});
             }
 
@@ -269,7 +270,7 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
       messages.push({ 
         id: `val-${idCounter++}`, 
         type: 'error', 
-        message: `Color Balance "${color}": Effective bobbin count (from bobbins, hidden, ice, and pipes: ${effectiveBobbinCount}) x 3 = ${expectedFabricCount}. Expected ${expectedFabricCount} total fabric blocks, but found ${fabricCount}.` 
+        message: `Color Balance "${color}": Effective bobbin count (from bobbins and pipes: ${effectiveBobbinCount}) x 3 = ${expectedFabricCount}. Expected ${expectedFabricCount} total fabric blocks, but found ${fabricCount}.` 
       });
     }
   });
