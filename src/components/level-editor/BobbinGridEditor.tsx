@@ -66,8 +66,9 @@ export const BobbinGridEditor: React.FC = () => {
                 let newKeyLocation = chain.keyLocation;
                 if (newKeyLocation && newKeyLocation.row >= newRows) {
                     newKeyLocation = null; // Invalidate key if it was in a removed row
+                    delete chain.color;
                 }
-                return { path: newPath, keyLocation: newKeyLocation };
+                return { ...chain, path: newPath, keyLocation: newKeyLocation };
             }).filter(chain => chain.path.length > 0);
         }
         if (draft.bobbinArea.pins) {
@@ -100,8 +101,9 @@ export const BobbinGridEditor: React.FC = () => {
               let newKeyLocation = chain.keyLocation;
               if (newKeyLocation && newKeyLocation.col >= newCols) {
                   newKeyLocation = null;
+                  delete chain.color;
               }
-              return { path: newPath, keyLocation: newKeyLocation };
+              return { ...chain, path: newPath, keyLocation: newKeyLocation };
           }).filter(chain => chain.path.length > 0);
         }
        if (draft.bobbinArea.pins) {
@@ -113,7 +115,9 @@ export const BobbinGridEditor: React.FC = () => {
 
   const handleCellChange = (rowIndex: number, colIndex: number, newCell: BobbinCell) => {
     setLevelData(draft => {
+      const oldCell = draft.bobbinArea.cells[rowIndex][colIndex];
       draft.bobbinArea.cells[rowIndex][colIndex] = newCell;
+
       if (newCell.type === 'empty') {
         // If cell becomes empty, remove any pairs or chain links or pins involving it
         if (draft.bobbinArea.pairs) {
@@ -129,15 +133,21 @@ export const BobbinGridEditor: React.FC = () => {
             draft.bobbinArea.pins = draft.bobbinArea.pins.filter(p => !(p.head.row === rowIndex && p.head.col === colIndex) && !(p.tail.row === rowIndex && p.tail.col === colIndex));
         }
       }
-      // If a cell is no longer a chain key, unlink it from any chains
-      if (newCell.has !== 'chain-key') {
-          if (draft.bobbinArea.chains) {
-              draft.bobbinArea.chains.forEach(chain => {
-                  if (chain.keyLocation?.row === rowIndex && chain.keyLocation?.col === colIndex) {
-                      chain.keyLocation = null;
-                  }
-              });
+      
+      // If a cell that WAS a chain key is no longer one, or its color changed
+      if (oldCell.has === 'chain-key') {
+        draft.bobbinArea.chains?.forEach(chain => {
+          if (chain.keyLocation?.row === rowIndex && chain.keyLocation?.col === colIndex) {
+            if (newCell.has !== 'chain-key') {
+              // The key was removed
+              chain.keyLocation = null;
+              delete chain.color;
+            } else if (newCell.accessoryColor !== oldCell.accessoryColor) {
+              // The key's color changed
+              chain.color = newCell.accessoryColor;
+            }
           }
+        });
       }
     });
   };
@@ -197,10 +207,13 @@ export const BobbinGridEditor: React.FC = () => {
                  .map(coord => ({ row: coord.row > rowIndex ? coord.row - 1 : coord.row, col: coord.col }));
             let newKeyLocation = chain.keyLocation;
             if (newKeyLocation) {
-                if (newKeyLocation.row === rowIndex) newKeyLocation = null;
+                if (newKeyLocation.row === rowIndex) {
+                  newKeyLocation = null;
+                  delete chain.color;
+                }
                 else if (newKeyLocation.row > rowIndex) newKeyLocation.row--;
             }
-            return { path: newPath, keyLocation: newKeyLocation };
+            return { ...chain, path: newPath, keyLocation: newKeyLocation };
         }).filter(chain => chain.path.length > 0) || [];
       draft.bobbinArea.chains = newChains;
       // Adjust pins
@@ -267,8 +280,8 @@ export const BobbinGridEditor: React.FC = () => {
     if (!isLinkingMode) return;
 
     const clickedCell = cells[rIdx]?.[cIdx];
-    if (!clickedCell || (clickedCell.type === 'empty' || clickedCell.type === 'pipe')) {
-      toast({ title: "Cannot Pair", description: "Only bobbins, hidden bobbins, or frozen bobbins can be paired.", variant: "destructive" });
+    if (!clickedCell || clickedCell.type !== 'bobbin') {
+      toast({ title: "Cannot Pair", description: "Only bobbins can be paired.", variant: "destructive" });
       return;
     }
     
@@ -327,8 +340,14 @@ export const BobbinGridEditor: React.FC = () => {
             toast({ title: "Not a Chain Key", description: "You must select a bobbin with a 'chain-key' accessory.", variant: "destructive" });
             return;
         }
+        if (!clickedCell.accessoryColor) {
+            toast({ title: "No Accessory Color", description: "The selected chain-key must have an accessory color assigned.", variant: "destructive" });
+            return;
+        }
         setLevelData(draft => {
-            draft.bobbinArea.chains![chainToLinkKey].keyLocation = { row: rIdx, col: cIdx };
+            const chain = draft.bobbinArea.chains![chainToLinkKey];
+            chain.keyLocation = { row: rIdx, col: cIdx };
+            chain.color = clickedCell.accessoryColor;
         });
         toast({ title: "Chain Key Linked", description: `Linked chain to key at (${rIdx + 1}, ${cIdx + 1}).`});
         setChainToLinkKey(null);
@@ -336,8 +355,8 @@ export const BobbinGridEditor: React.FC = () => {
     }
 
     const clickedCell = cells[rIdx]?.[cIdx];
-    if (!clickedCell || (clickedCell.type === 'empty' || clickedCell.type === 'pipe')) {
-        toast({ title: "Cannot Chain", description: "Only bobbins, hidden bobbins, or frozen bobbins can be chained.", variant: "destructive" });
+    if (!clickedCell || clickedCell.type !== 'bobbin') {
+        toast({ title: "Cannot Chain", description: "Only bobbins can be chained.", variant: "destructive" });
         return;
     }
      if (isCellLinked(rIdx, cIdx) || isCellPinned(rIdx, cIdx)) {
@@ -397,8 +416,8 @@ export const BobbinGridEditor: React.FC = () => {
     if (!isPinningMode) return;
 
     const clickedCell = cells[rIdx]?.[cIdx];
-    if (!clickedCell || (clickedCell.type === 'empty' || clickedCell.type === 'pipe')) {
-      toast({ title: "Cannot Pin", description: "Only bobbins, hidden bobbins, or frozen bobbins can be pinned.", variant: "destructive" });
+    if (!clickedCell || clickedCell.type !== 'bobbin') {
+      toast({ title: "Cannot Pin", description: "Only bobbins can be pinned.", variant: "destructive" });
       return;
     }
     if (isCellLinked(rIdx, cIdx) || isCellInChain(rIdx, cIdx)) {

@@ -145,7 +145,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "bobbin", color: "Blue" },
         { type: "bobbin", color: "Green" },
         { type: "bobbin", color: "Red" },
-        { type: "bobbin", color: "Blue", has: "chain-key", hidden: true },
+        { type: "bobbin", color: "Blue", has: "chain-key", hidden: true, accessoryColor: 'Purple' },
       ],
     ],
     pairs: [
@@ -154,7 +154,8 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
     chains: [
       {
         path: [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 1 }],
-        keyLocation: { row: 6, col: 6}
+        keyLocation: { row: 6, col: 6},
+        color: 'Purple',
       }
     ],
     pins: [],

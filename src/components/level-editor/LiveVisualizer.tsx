@@ -30,7 +30,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
     if (!cell.has) return null;
 
     const getAccessoryColor = () => {
-        if ((cell.has === 'lock' || cell.has === 'key') && cell.accessoryColor) {
+        if ((cell.has === 'lock' || cell.has === 'key' || cell.has === 'chain-key') && cell.accessoryColor) {
             return COLOR_MAP[cell.accessoryColor];
         }
         return "hsl(var(--foreground))";
@@ -50,7 +50,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
         case 'key': 
             return <KeyIcon {...commonProps} color={getAccessoryColor()} transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />;
         case 'chain-key':
-            return <KeySquare {...commonProps} color={"hsl(var(--foreground))"} />;
+            return <KeySquare {...commonProps} color={getAccessoryColor()} />;
         case 'pin-head':
             return <Pin {...commonProps} color={"hsl(var(--foreground))"} />;
         case 'pin-tail':
@@ -172,8 +172,10 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
         })
       )}
        {/* Chain Path Lines */}
-       {chains.map((chain, cIdx) => 
-        chain.path.map((coord, bIdx) => {
+       {chains.map((chain, cIdx) => {
+        const chainColor = (chain.color && COLOR_MAP[chain.color]) || CHAIN_LINE_COLOR;
+        
+        return chain.path.map((coord, bIdx) => {
           if (bIdx === chain.path.length - 1) return null; // No line from the last bobbin
           const nextCoord = chain.path[bIdx+1];
           const fromX = coord.col * CELL_SIZE + CELL_SIZE / 2;
@@ -187,7 +189,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                 y1={fromY}
                 x2={toX}
                 y2={toY}
-                stroke={CHAIN_LINE_COLOR}
+                stroke={chainColor}
                 strokeWidth="4"
                 strokeLinecap="round"
                 opacity="0.6"
@@ -195,10 +197,11 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             />
            );
         })
-       )}
+       })}
        {/* Chain Key Link Lines */}
        {chains.map((chain, cIdx) => {
         if (!chain.keyLocation || chain.path.length === 0) return null;
+        const keyLinkColor = (chain.color && COLOR_MAP[chain.color]) || CHAIN_KEY_LINK_COLOR;
         const firstBobbinInPath = chain.path[0];
         const fromX = firstBobbinInPath.col * CELL_SIZE + CELL_SIZE / 2;
         const fromY = firstBobbinInPath.row * CELL_SIZE + CELL_SIZE / 2;
@@ -211,7 +214,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             y1={fromY}
             x2={toX}
             y2={toY}
-            stroke={CHAIN_KEY_LINK_COLOR}
+            stroke={keyLinkColor}
             strokeWidth="1.5"
             strokeDasharray="5 3"
             opacity="0.8"
