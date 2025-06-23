@@ -11,7 +11,8 @@ import { ColorPicker } from '@/components/shared/ColorPicker';
 import { NumberSpinner } from '@/components/shared/NumberSpinner';
 import { cn } from '@/lib/utils';
 import { useLevelData } from '@/contexts/LevelDataContext';
-import { EyeOffIcon, SnowflakeIcon, LockIcon, KeyIcon, KeySquare, Pin, Target } from 'lucide-react'; 
+import { SnowflakeIcon, LockIcon, KeyIcon, KeySquare, Pin, Target } from 'lucide-react'; 
+import { Checkbox } from '../ui/checkbox';
 
 
 interface BobbinCellEditorProps {
@@ -37,9 +38,7 @@ interface BobbinCellEditorProps {
 const cellTypeDisplay: Record<BobbinCell['type'], string> = {
   bobbin: "Bobbin",
   pipe: "Pipe",
-  hidden: "Hidden",
   empty: "Empty",
-  ice: "Frozen", 
 };
 
 const MAX_PIPE_COLORS = 5; 
@@ -66,19 +65,23 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   const { setActiveEditorArea } = useLevelData();
 
   const handleTypeChange = (newType: BobbinCell['type']) => {
-    const newCellData: BobbinCell = { type: newType, has: cell.has };
-    if (newType === 'bobbin' || newType === 'hidden' || newType === 'ice') { 
+    const newCellData: BobbinCell = { type: newType };
+    if (newType === 'bobbin') {
       newCellData.color = cell.color || AVAILABLE_COLORS[0];
+      if (cell.type === 'bobbin') { // Preserve properties if old type was also bobbin
+        newCellData.hidden = cell.hidden;
+        newCellData.ice = cell.ice;
+        newCellData.has = cell.has;
+        newCellData.accessoryColor = cell.accessoryColor;
+      }
     } else if (newType === 'pipe') {
       if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) {
         newCellData.colors = cell.colors.slice(0, MAX_PIPE_COLORS); 
       } else {
         newCellData.colors = [AVAILABLE_COLORS[0], AVAILABLE_COLORS[1]];
       }
-      delete newCellData.has; // Pipes cannot have accessories
-    } else {
-       delete newCellData.has; // Empty cannot have accessories
     }
+    // For 'empty', we just want { type: 'empty' }
     onCellChange(newCellData);
   };
 
@@ -87,14 +90,46 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   };
   
   const handleHasChange = (newHas: 'lock' | 'key' | 'chain-key' | 'pin-head' | 'pin-tail' | 'none') => {
-    const newCell = {...cell};
+    const newCell: BobbinCell = {...cell};
     if (newHas === 'none') {
       delete newCell.has;
+      delete newCell.accessoryColor;
     } else {
       newCell.has = newHas;
+      if (newHas === 'lock' || newHas === 'key') {
+        if (!newCell.accessoryColor) {
+          newCell.accessoryColor = AVAILABLE_COLORS[0];
+        }
+      } else {
+        delete newCell.accessoryColor;
+      }
     }
     onCellChange(newCell);
-  }
+  };
+
+  const handleAccessoryColorChange = (color: BobbinColor) => {
+    onCellChange({ ...cell, accessoryColor: color });
+  };
+
+  const handleHiddenChange = (checked: boolean) => {
+    const newCell: BobbinCell = { ...cell };
+    if (checked) {
+      newCell.hidden = true;
+    } else {
+      delete newCell.hidden;
+    }
+    onCellChange(newCell);
+  };
+
+  const handleIceChange = (checked: boolean) => {
+    const newCell: BobbinCell = { ...cell };
+    if (checked) {
+      newCell.ice = true;
+    } else {
+      delete newCell.ice;
+    }
+    onCellChange(newCell);
+  };
 
   const actualNumPipeColors = (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) 
     ? cell.colors.length 
@@ -119,40 +154,46 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
 
   const getCellDisplay = () => {
     const iconClass = "w-4 h-4 text-white mix-blend-difference";
-    const accessoryIconClass = "absolute top-0.5 right-0.5 w-3 h-3 text-black/70 bg-white/50 rounded-full p-0.5"
+    const accessoryIconClass = "absolute top-0.5 right-0.5 w-3 h-3 bg-white/50 rounded-full p-0.5";
 
-    const accessory = cell.has === 'lock' ? <LockIcon className={accessoryIconClass} />
-                    : cell.has === 'key' ? <KeyIcon className={accessoryIconClass} />
-                    : cell.has === 'chain-key' ? <KeySquare className={accessoryIconClass} />
-                    : cell.has === 'pin-head' ? <Pin className={accessoryIconClass} />
-                    : cell.has === 'pin-tail' ? <Target className={accessoryIconClass} />
-                    : null;
+    const accessory = (() => {
+      if (!cell.has) return null;
+    
+      const getAccessoryColor = () => {
+        if ((cell.has === 'lock' || cell.has === 'key') && cell.accessoryColor) {
+          return COLOR_MAP[cell.accessoryColor];
+        }
+        return 'black';
+      };
+    
+      switch (cell.has) {
+        case 'lock':
+          return <LockIcon className={accessoryIconClass} color={getAccessoryColor()} />;
+        case 'key':
+          return <KeyIcon className={accessoryIconClass} color={getAccessoryColor()} />;
+        case 'chain-key':
+          return <KeySquare className={accessoryIconClass} />;
+        case 'pin-head':
+          return <Pin className={accessoryIconClass} />;
+        case 'pin-tail':
+          return <Target className={accessoryIconClass} />;
+        default:
+          return null;
+      }
+    })();
 
     switch (cell.type) {
       case 'bobbin':
-      case 'hidden':
         return (
           <div
             className={cn(
               "w-full h-full rounded-sm flex items-center justify-center relative",
-              cell.type === 'hidden' && 'opacity-50'
+              cell.hidden && 'opacity-50'
             )}
             style={{ backgroundColor: cell.color ? COLOR_MAP[cell.color] : 'transparent' }}
-            aria-label={`${cellTypeDisplay[cell.type]} cell, color ${cell.color || 'none'}`}
+            aria-label={`Bobbin cell, color ${cell.color || 'none'}`}
           >
-            {cell.type === 'bobbin' && <SpoolIcon className={iconClass} />}
-            {cell.type === 'hidden' && <EyeOffIcon className={iconClass} />}
-            {accessory}
-          </div>
-        );
-      case 'ice': 
-        return (
-          <div
-            className="w-full h-full rounded-sm flex items-center justify-center relative"
-            style={{ backgroundColor: cell.color ? COLOR_MAP[cell.color] : 'transparent' }}
-            aria-label={`${cellTypeDisplay[cell.type]} cell, color ${cell.color || 'none'}`}
-          >
-            <SnowflakeIcon className={iconClass} />
+            {cell.ice ? <SnowflakeIcon className={iconClass} /> : <SpoolIcon className={iconClass} />}
             {accessory}
           </div>
         );
@@ -190,7 +231,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
     }
   };
   
-  const canHaveAccessory = cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice';
+  const isBobbinType = cell.type === 'bobbin';
 
   return (
     <Popover>
@@ -205,8 +246,8 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             isActuallyInChain && !isSelectedChain && "border-accent/50 border-2",
             isSelectedChain && "ring-2 ring-accent ring-offset-background shadow-lg",
             isChainAwaitingKeyLink && "ring-2 ring-blue-500 ring-offset-background shadow-lg",
-            isSelectedForPinning && "ring-2 ring-orange-400 ring-offset-background shadow-lg",
-            isActuallyPinned && !isSelectedForPinning && "border-orange-500/50 border-2",
+            isSelectedForPinning && "ring-2 ring-pin-accent ring-offset-background shadow-lg",
+            isActuallyPinned && !isSelectedForPinning && "border-pin-accent/50 border-2",
           )}
           aria-label={`Edit cell at row ${rowIndex + 1}, column ${colIndex + 1}. Current type: ${cellTypeDisplay[cell.type]}`}
           onClick={handleButtonClick}
@@ -221,9 +262,9 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           <RadioGroup
             value={cell.type}
             onValueChange={(value) => handleTypeChange(value as BobbinCell['type'])}
-            className="mt-1 grid grid-cols-2 gap-2"
+            className="mt-1 grid grid-cols-3 gap-2"
           >
-            {(['bobbin', 'pipe', 'hidden', 'empty', 'ice'] as BobbinCell['type'][]).map(type => ( 
+            {(['bobbin', 'pipe', 'empty'] as BobbinCell['type'][]).map(type => ( 
               <div key={type} className="flex items-center space-x-2">
                 <RadioGroupItem value={type} id={`type-${type}-${rowIndex}-${colIndex}`} />
                 <Label htmlFor={`type-${type}-${rowIndex}-${colIndex}`} className="text-sm">{cellTypeDisplay[type]}</Label>
@@ -232,35 +273,72 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           </RadioGroup>
         </div>
 
-        {canHaveAccessory && (
-          <div>
-            <Label className="text-sm font-medium">Accessory</Label>
-             <RadioGroup
-              value={cell.has || 'none'}
-              onValueChange={(value) => handleHasChange(value as any)}
-              className="mt-1 grid grid-cols-3 gap-2"
-            >
-              {(['none', 'lock', 'key', 'chain-key', 'pin-head', 'pin-tail'] as const).map(item => (
-                <div key={item} className="flex items-center space-x-2">
-                  <RadioGroupItem value={item} id={`has-${item}-${rowIndex}-${colIndex}`} />
-                  <Label htmlFor={`has-${item}-${rowIndex}-${colIndex}`} className="text-sm capitalize">{item.replace('-', ' ')}</Label>
+        {isBobbinType && (
+          <>
+             <div>
+              <Label className="text-sm font-medium">Properties</Label>
+              <div className="mt-1 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`hidden-check-${rowIndex}-${colIndex}`}
+                    checked={!!cell.hidden}
+                    onCheckedChange={handleHiddenChange}
+                  />
+                  <Label htmlFor={`hidden-check-${rowIndex}-${colIndex}`} className="text-sm font-normal">Hidden</Label>
                 </div>
-              ))}
-            </RadioGroup>
-          </div>
-        )}
+                 <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`ice-check-${rowIndex}-${colIndex}`}
+                    checked={!!cell.ice}
+                    onCheckedChange={handleIceChange}
+                  />
+                  <Label htmlFor={`ice-check-${rowIndex}-${colIndex}`} className="text-sm font-normal">Frozen (Ice)</Label>
+                </div>
+              </div>
+            </div>
 
-        {(cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') && ( 
-          <div>
-            <Label htmlFor={`color-${rowIndex}-${colIndex}`} className="text-sm font-medium">Color</Label>
-            <ColorPicker
-              id={`color-${rowIndex}-${colIndex}`}
-              color={cell.color || AVAILABLE_COLORS[0]}
-              onChange={handleColorChange}
-              availableColors={AVAILABLE_COLORS}
-              className="mt-1"
-            />
-          </div>
+            <div>
+              <Label className="text-sm font-medium">Accessory</Label>
+              <RadioGroup
+                value={cell.has || 'none'}
+                onValueChange={(value) => handleHasChange(value as any)}
+                className="mt-1 grid grid-cols-3 gap-2"
+              >
+                {(['none', 'lock', 'key', 'chain-key', 'pin-head', 'pin-tail'] as const).map(item => (
+                  <div key={item} className="flex items-center space-x-2">
+                    <RadioGroupItem value={item} id={`has-${item}-${rowIndex}-${colIndex}`} />
+                    <Label htmlFor={`has-${item}-${rowIndex}-${colIndex}`} className="text-sm capitalize">{item.replace('-', ' ')}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+            
+            {(cell.has === 'lock' || cell.has === 'key') && (
+              <div>
+                <Label htmlFor={`accessory-color-${rowIndex}-${colIndex}`} className="text-sm font-medium">
+                  Accessory Color
+                </Label>
+                <ColorPicker
+                  id={`accessory-color-${rowIndex}-${colIndex}`}
+                  color={cell.accessoryColor || AVAILABLE_COLORS[0]}
+                  onChange={handleAccessoryColorChange}
+                  availableColors={AVAILABLE_COLORS}
+                  className="mt-1"
+                />
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor={`color-${rowIndex}-${colIndex}`} className="text-sm font-medium">Bobbin Color</Label>
+              <ColorPicker
+                id={`color-${rowIndex}-${colIndex}`}
+                color={cell.color || AVAILABLE_COLORS[0]}
+                onChange={handleColorChange}
+                availableColors={AVAILABLE_COLORS}
+                className="mt-1"
+              />
+            </div>
+          </>
         )}
         
         {cell.type === 'pipe' && (

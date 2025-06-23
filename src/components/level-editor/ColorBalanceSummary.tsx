@@ -26,7 +26,7 @@ const calculateColorCounts = (levelData: LevelData): Map<BobbinColor, ColorCount
   // Calculate effective bobbin counts
   levelData.bobbinArea.cells.forEach(row => {
     row.forEach(cell => {
-      if (cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') {
+      if (cell.type === 'bobbin') {
         if (cell.color) {
           const currentColor = counts.get(cell.color);
           if (currentColor) {
@@ -133,4 +133,3 @@ export const ColorBalanceSummary: React.FC = () => {
     </Card>
   );
 };
-
