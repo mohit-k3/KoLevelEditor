@@ -43,8 +43,7 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
   const effectiveBobbinColorCounts = new Map<BobbinColor, number>();
   const allBobbinColorsPresent = new Set<BobbinColor>(); 
   const pairedCellCoordinates = new Set<string>(); 
-  let lockCount = 0;
-  let keyCount = 0;
+  const lockKeyColorCounts = new Map<BobbinColor, { locks: number; keys: number }>();
   let chainKeyCount = 0;
   let pinHeadCount = 0;
   let pinTailCount = 0;
@@ -54,11 +53,22 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
       const cellPos = `(R${rIdx + 1}, C${cIdx + 1})`;
 
       if (cell.type === 'bobbin') {
-        if (cell.has === 'lock') lockCount++;
-        if (cell.has === 'key') keyCount++;
         if (cell.has === 'chain-key') chainKeyCount++;
         if (cell.has === 'pin-head') pinHeadCount++;
         if (cell.has === 'pin-tail') pinTailCount++;
+
+        if (cell.color) {
+          if (cell.has === 'lock') {
+            const counts = lockKeyColorCounts.get(cell.color) || { locks: 0, keys: 0 };
+            counts.locks++;
+            lockKeyColorCounts.set(cell.color, counts);
+          }
+          if (cell.has === 'key') {
+            const counts = lockKeyColorCounts.get(cell.color) || { locks: 0, keys: 0 };
+            counts.keys++;
+            lockKeyColorCounts.set(cell.color, counts);
+          }
+        }
 
         if (!cell.color) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "bobbin" is missing a color.` });
@@ -94,10 +104,16 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
     });
   });
 
-  // Lock/Key validation
-  if (lockCount !== keyCount) {
-    messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Lock/Key Mismatch: Found ${lockCount} lock(s) and ${keyCount} key(s). The counts must be equal.`});
-  }
+  // Colored Lock/Key validation
+  lockKeyColorCounts.forEach((counts, color) => {
+    if (counts.locks !== counts.keys) {
+      messages.push({
+        id: `val-${idCounter++}`,
+        type: 'error',
+        message: `Lock/Key Mismatch for color "${color}": Found ${counts.locks} lock(s) and ${counts.keys} key(s). The counts must be equal.`
+      });
+    }
+  });
 
   // Pin validation
   if (pinHeadCount !== pinTailCount) {

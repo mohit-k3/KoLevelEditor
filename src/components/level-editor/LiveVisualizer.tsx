@@ -26,6 +26,37 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
   const width = cols * CELL_SIZE;
   const height = rows * CELL_SIZE;
 
+  const getAccessoryIcon = (cell: BobbinCell, x: number, y: number) => {
+    if (!cell.has) return null;
+
+    const iconColor = (cell.type === 'bobbin' && cell.color) 
+        ? COLOR_MAP[cell.color] 
+        : "hsl(var(--foreground))";
+
+    const commonProps = {
+        x: x + CELL_SIZE - 12,
+        y: y + 4,
+        width: "10",
+        height: "10",
+        strokeWidth: "3",
+    };
+
+    switch(cell.has) {
+        case 'lock': 
+            return <LockIcon {...commonProps} color={iconColor} />;
+        case 'key': 
+            return <KeyIcon {...commonProps} color={iconColor} transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />;
+        case 'chain-key':
+            return <KeySquare {...commonProps} color={"hsl(var(--foreground))"} />;
+        case 'pin-head':
+            return <Pin {...commonProps} color={"hsl(var(--foreground))"} />;
+        case 'pin-tail':
+            return <Target {...commonProps} color={"hsl(var(--foreground))"} />;
+        default: 
+            return null;
+    }
+  };
+
   return (
     <svg 
       width={width} 
@@ -50,17 +81,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           
           let cellElement = <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" />;
 
-          const accessoryIcon = cell.has === 'lock' 
-              ? <LockIcon x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
-              : cell.has === 'key' 
-              ? <KeyIcon x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />
-              : cell.has === 'chain-key'
-              ? <KeySquare x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
-              : cell.has === 'pin-head'
-              ? <Pin x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
-              : cell.has === 'pin-tail'
-              ? <Target x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
-              : null;
+          const accessoryIcon = getAccessoryIcon(cell, x, y);
           
           if (cell.type === 'bobbin') {
             const bobbinColor = COLOR_MAP[cell.color || ''] || 'transparent';

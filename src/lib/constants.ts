@@ -1,3 +1,4 @@
+
 import type {
   BobbinCell,
   FabricBlockData,
@@ -111,10 +112,10 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "bobbin", color: "Blue" },
       ],
       [
-        { type: "bobbin", color: "Green", has: "lock" },
+        { type: "bobbin", color: "Green" },
         { type: "bobbin", color: "Red" },
         { type: "pipe", colors: ["Red", "Blue", "Green"] },
-        { type: "bobbin", color: "Blue" },
+        { type: "bobbin", color: "Blue", has: "lock" },
         { type: "bobbin", color: "Green", hidden: true },
         { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Blue" },

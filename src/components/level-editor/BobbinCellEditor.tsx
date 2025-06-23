@@ -141,14 +141,29 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
 
   const getCellDisplay = () => {
     const iconClass = "w-4 h-4 text-white mix-blend-difference";
-    const accessoryIconClass = "absolute top-0.5 right-0.5 w-3 h-3 text-black/70 bg-white/50 rounded-full p-0.5"
+    const accessoryIconClass = "absolute top-0.5 right-0.5 w-3 h-3 bg-white/50 rounded-full p-0.5";
 
-    const accessory = cell.has === 'lock' ? <LockIcon className={accessoryIconClass} />
-                    : cell.has === 'key' ? <KeyIcon className={accessoryIconClass} />
-                    : cell.has === 'chain-key' ? <KeySquare className={accessoryIconClass} />
-                    : cell.has === 'pin-head' ? <Pin className={accessoryIconClass} />
-                    : cell.has === 'pin-tail' ? <Target className={accessoryIconClass} />
-                    : null;
+    const accessory = (() => {
+      if (!cell.has) return null;
+    
+      const isBobbinWithColor = cell.type === 'bobbin' && cell.color;
+      const iconColor = isBobbinWithColor ? COLOR_MAP[cell.color] : 'black';
+    
+      switch (cell.has) {
+        case 'lock':
+          return <LockIcon className={accessoryIconClass} color={iconColor} />;
+        case 'key':
+          return <KeyIcon className={accessoryIconClass} color={iconColor} />;
+        case 'chain-key':
+          return <KeySquare className={accessoryIconClass} />;
+        case 'pin-head':
+          return <Pin className={accessoryIconClass} />;
+        case 'pin-tail':
+          return <Target className={accessoryIconClass} />;
+        default:
+          return null;
+      }
+    })();
 
     switch (cell.type) {
       case 'bobbin':
