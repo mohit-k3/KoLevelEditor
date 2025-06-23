@@ -140,42 +140,58 @@ export const BobbinGridEditor: React.FC = () => {
 
     const clickedCell = cells[rIdx]?.[cIdx];
     if (!clickedCell || (clickedCell.type !== 'bobbin' && clickedCell.type !== 'hidden' && clickedCell.type !== 'ice')) {
-      toast({ title: "Cannot Link", description: "Only bobbins, hidden bobbins, or frozen bobbins can be linked.", variant: "destructive" });
+      toast({ title: "Cannot Pair", description: "Only bobbins, hidden bobbins, or frozen bobbins can be paired.", variant: "destructive" });
       return;
     }
 
-    const existingPairIndex = pairs.findIndex(p =>
-      (p.from.row === rIdx && p.from.col === cIdx) || (p.to.row === rIdx && p.to.col === cIdx)
-    );
-
-    if (linkStartNode) { // This is the second+ click in a chain
+    if (linkStartNode) { // This is the second click, create the pair
       if (linkStartNode.row === rIdx && linkStartNode.col === cIdx) {
-        // Clicked the same cell again, deselect it and end the chain
+        // Clicked the same cell again, deselect it
+        setLinkStartNode(null);
+        return;
+      }
+
+      const newPair = { from: linkStartNode, to: { row: rIdx, col: cIdx } };
+
+      // Check if this exact pair or its reverse already exists
+      const pairExists = pairs.some(p =>
+        (p.from.row === newPair.from.row && p.from.col === newPair.from.col && p.to.row === newPair.to.row && p.to.col === newPair.to.col) ||
+        (p.from.row === newPair.to.row && p.from.col === newPair.to.col && p.to.row === newPair.from.row && p.to.col === newPair.from.col)
+      );
+
+      if (pairExists) {
+        toast({ title: "Already Paired", description: "These bobbins are already paired.", variant: "destructive" });
         setLinkStartNode(null);
         return;
       }
       
-      const newLinkTarget = { row: rIdx, col: cIdx };
+      // Check if either bobbin is already in another pair
+      if (isCellLinked(linkStartNode.row, linkStartNode.col) || isCellLinked(rIdx, cIdx)) {
+         toast({ title: "Cannot Pair", description: "One of these bobbins is already part of another pair. Unpair it first.", variant: "destructive" });
+         setLinkStartNode(null);
+         return;
+      }
+
       setLevelData(draft => {
         if (!draft.bobbinArea.pairs) draft.bobbinArea.pairs = [];
-        draft.bobbinArea.pairs.push({ from: linkStartNode, to: newLinkTarget });
+        draft.bobbinArea.pairs.push(newPair);
       });
-      toast({ title: "Link Created", description: `Bobbins at (${linkStartNode.row + 1}, ${linkStartNode.col + 1}) and (${rIdx + 1}, ${cIdx + 1}) linked.` });
-      // Crucially, set the new start node to the just-clicked cell to allow continuous chaining
-      setLinkStartNode(newLinkTarget);
+      toast({ title: "Pair Created", description: `Bobbins at (${linkStartNode.row + 1}, ${linkStartNode.col + 1}) and (${rIdx + 1}, ${cIdx + 1}) paired.` });
+      setLinkStartNode(null); // Reset after creating a pair
 
-    } else { // This is the first click or a click to unlink
+    } else { // This is the first click
+       const existingPairIndex = pairs.findIndex(p =>
+        (p.from.row === rIdx && p.from.col === cIdx) || (p.to.row === rIdx && p.to.col === cIdx)
+      );
+
       if (existingPairIndex !== -1) {
-        // Clicked on an already paired bobbin, remove all links involving it
+        // This bobbin is already paired, so we'll remove the pair
         setLevelData(draft => {
-          draft.bobbinArea.pairs = draft.bobbinArea.pairs?.filter(p => 
-            !(p.from.row === rIdx && p.from.col === cIdx) && 
-            !(p.to.row === rIdx && p.to.col === cIdx)
-          );
+          draft.bobbinArea.pairs?.splice(existingPairIndex, 1);
         });
-        toast({ title: "Links Removed", description: `All links involving bobbin at (${rIdx + 1}, ${cIdx + 1}) removed.` });
+        toast({ title: "Pair Removed", description: `Pair involving bobbin at (${rIdx + 1}, ${cIdx + 1}) removed.` });
       } else {
-        // Start a new chain
+        // This bobbin is not paired, start the pairing process
         setLinkStartNode({ row: rIdx, col: cIdx });
       }
     }
@@ -263,12 +279,12 @@ export const BobbinGridEditor: React.FC = () => {
         <Button 
           variant={isLinkingMode ? "secondary" : "outline"} 
           onClick={toggleLinkingMode}
-          title={isLinkingMode ? "Disable Linking Mode (Ctrl+P)" : "Enable Linking Mode (Ctrl+P)"}
+          title={isLinkingMode ? "Disable Pairing Mode (Ctrl+P)" : "Enable Pairing Mode (Ctrl+P)"}
           size="sm"
           className="self-end"
         >
           {isLinkingMode ? <Link2Off className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}
-          {isLinkingMode ? "Linking Active" : "Link Bobbins"}
+          {isLinkingMode ? "Pairing Active" : "Pair Bobbins"}
         </Button>
       </div>
       <div ref={gridRef} className="overflow-auto">
@@ -325,8 +341,8 @@ export const BobbinGridEditor: React.FC = () => {
         </div>
       </div>
       <div className="mt-2 text-xs text-muted-foreground">
-        Keyboard: Arrow keys to move focus. Ctrl+C to clone row, Ctrl+D to delete. Ctrl+P to toggle linking mode.
-        {isLinkingMode && " Linking mode: Click bobbins sequentially to form a chain. Click an empty cell or the last bobbin to stop. Click a linked bobbin to remove its links."}
+        Keyboard: Arrow keys to move focus. Ctrl+C to clone row, Ctrl+D to delete. Ctrl+P to toggle pairing mode.
+        {isLinkingMode && " Pairing mode: Click a bobbin to start pairing. Click a second bobbin to create the pair. Click a paired bobbin to unpair it."}
       </div>
     </div>
   );
