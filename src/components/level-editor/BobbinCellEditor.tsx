@@ -205,8 +205,8 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             isActuallyInChain && !isSelectedChain && "border-accent/50 border-2",
             isSelectedChain && "ring-2 ring-accent ring-offset-background shadow-lg",
             isChainAwaitingKeyLink && "ring-2 ring-blue-500 ring-offset-background shadow-lg",
-            isSelectedForPinning && "ring-2 ring-orange-400 ring-offset-background shadow-lg",
-            isActuallyPinned && !isSelectedForPinning && "border-orange-500/50 border-2",
+            isSelectedForPinning && "ring-2 ring-pin-accent ring-offset-background shadow-lg",
+            isActuallyPinned && !isSelectedForPinning && "border-pin-accent/50 border-2",
           )}
           aria-label={`Edit cell at row ${rowIndex + 1}, column ${colIndex + 1}. Current type: ${cellTypeDisplay[cell.type]}`}
           onClick={handleButtonClick}

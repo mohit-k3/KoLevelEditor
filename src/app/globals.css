@@ -43,6 +43,9 @@ body {
     --sidebar-accent-foreground: 220 10% 10%;
     --sidebar-border: 220 13% 85%;
     --sidebar-ring: 262 49% 50%;
+    
+    /* Pinning Accent Color */
+    --pin-accent: 30 100% 45%; /* knitout-orange */
 
     /* FULL KnitOut Colors (based on hex to HSL) */
     --knitout-light-pink: 330 51% 76%; /* #DD7AB1 */
