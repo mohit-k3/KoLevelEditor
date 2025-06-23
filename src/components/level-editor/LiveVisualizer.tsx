@@ -7,7 +7,7 @@ import { COLOR_MAP, LIMITED_FABRIC_COLORS, createFabricBlock, PAIRING_LINE_COLOR
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FabricBlockPopover } from './FabricBlockPopover';
-import { SnowflakeIcon } from 'lucide-react'; // Added SnowflakeIcon
+import { SnowflakeIcon, LockIcon, KeyIcon } from 'lucide-react';
 
 
 interface LiveVisualizerProps {
@@ -50,8 +50,15 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           
           let cellElement = <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" />;
 
+          const accessoryIcon = cell.has === 'lock' 
+              ? <LockIcon x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
+              : cell.has === 'key' 
+              ? <KeyIcon x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />
+              : null;
+
           if (cell.type === 'hidden' && cell.color) {
             cellElement = (
+              <>
               <rect 
                 x={x + 0.5} 
                 y={y + 0.5} 
@@ -63,12 +70,15 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                 strokeWidth="1.5" 
                 strokeDasharray="3 3" 
               />
+              {accessoryIcon}
+              </>
             );
           }
 
           if (cell.type === 'bobbin' && cell.color) {
             const spoolColor = COLOR_MAP[cell.color] || cell.color;
             cellElement = (
+              <>
               <g transform={`translate(${x + CELL_SIZE / 2}, ${y + CELL_SIZE / 2})`}>
                 <rect 
                   x={-CELL_SIZE * SPOOL_WIDTH_RATIO / 2} 
@@ -81,10 +91,12 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                 <rect x={-CELL_SIZE / 2} y={-CELL_SIZE / 2} width={CELL_SIZE} height={CELL_SIZE * SPOOL_END_HEIGHT_RATIO} fill={spoolColor} opacity="0.7" rx="1"/>
                 <rect x={-CELL_SIZE / 2} y={CELL_SIZE / 2 * (1-SPOOL_END_HEIGHT_RATIO*2)} width={CELL_SIZE} height={CELL_SIZE * SPOOL_END_HEIGHT_RATIO} fill={spoolColor} opacity="0.7" rx="1"/>
               </g>
+              {accessoryIcon}
+              </>
             );
           }
           
-          if (cell.type === 'ice' && cell.color) { // Added 'ice' visualization
+          if (cell.type === 'ice' && cell.color) { 
             const iceColor = COLOR_MAP[cell.color] || cell.color;
             cellElement = (
               <g>
@@ -97,13 +109,14 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                   rx="2"
                 />
                 <SnowflakeIcon 
-                  x={x + CELL_SIZE / 2 - 8} // Center icon (assuming 16x16 icon)
+                  x={x + CELL_SIZE / 2 - 8}
                   y={y + CELL_SIZE / 2 - 8}
                   width="16" 
                   height="16" 
-                  color="hsl(var(--primary-foreground))" // Or a contrasting color
+                  color="hsl(var(--primary-foreground))"
                   opacity="0.75"
                 />
+                 {accessoryIcon}
               </g>
             );
           }
@@ -287,4 +300,3 @@ export const LiveVisualizer: React.FC<LiveVisualizerProps> = ({ editorType, clas
     </div>
   );
 };
-

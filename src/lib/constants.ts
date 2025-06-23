@@ -40,32 +40,7 @@ export const AVAILABLE_COLORS: BobbinColor[] = [
   "Red",
   "LightRed",
 ];
-export const LIMITED_FABRIC_COLORS: BobbinColor[] = [
-  "LightPink",
-  "Pink",
-  "DarkPink",
-  "LightBrown",
-  "Brown",
-  "Orange",
-  "Yellow",
-  "LightYellow",
-  "Teal",
-  "DarkTeal",
-  "YellowGreen",
-  "Green",
-  "DarkGreen",
-  "DarkBlue",
-  "Blue",
-  "Lavender",
-  "Violet",
-  "Purple",
-  "White",
-  "Grey",
-  "Black",
-  "DarkRed",
-  "Red",
-  "LightRed",
-];
+export const LIMITED_FABRIC_COLORS: BobbinColor[] = [...AVAILABLE_COLORS];
 
 export const createEmptyBobbinCell = (): BobbinCell => ({ type: "empty" });
 
@@ -106,9 +81,8 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
     rows: 7,
     cols: 7,
     cells: [
-      // ... (cell data remains the same)
       [
-        { type: "bobbin", color: "Red" },
+        { type: "bobbin", color: "Red", has: "key" },
         { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Blue" },
         { type: "bobbin", color: "Green" },
@@ -135,7 +109,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "bobbin", color: "Blue" },
       ],
       [
-        { type: "bobbin", color: "Green" },
+        { type: "bobbin", color: "Green", has: "lock" },
         { type: "bobbin", color: "Red" },
         { type: "pipe", colors: ["Red", "Blue", "Green"] },
         { type: "bobbin", color: "Blue" },
@@ -172,7 +146,6 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
       ],
     ],
     pairs: [
-      // Example pair
       { from: { row: 0, col: 1 }, to: { row: 3, col: 4 } },
     ],
   },
@@ -214,6 +187,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
     ),
   },
 };
+
 
 export const COLOR_MAP: Record<string, string> = {
   LightPink: "hsl(var(--knitout-light-pink))",

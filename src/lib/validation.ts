@@ -37,15 +37,24 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
   const effectiveBobbinColorCounts = new Map<BobbinColor, number>();
   const allBobbinColorsPresent = new Set<BobbinColor>(); 
   const pairedCellCoordinates = new Set<string>(); 
+  let lockCount = 0;
+  let keyCount = 0;
 
   data.bobbinArea.cells.forEach((row, rIdx) => {
     row.forEach((cell, cIdx) => {
       const cellPos = `(R${rIdx + 1}, C${cIdx + 1})`;
 
+      if (cell.has === 'lock') lockCount++;
+      if (cell.has === 'key') keyCount++;
+
+      if (cell.has && (cell.type === 'empty' || cell.type === 'pipe')) {
+        messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "${cell.type}" cannot have a lock or key.`});
+      }
+      
       if (cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') {
         if (!cell.color) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "${cell.type}" is missing a color.` });
-        } else if (!AVAILABLE_COLORS.includes(cell.color) && !/^#[0-9A-Fa-f]{6}$/.test(cell.color)) {
+        } else if (!AVAILABLE_COLORS.includes(cell.color)) {
           // messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: Cell ${cellPos} has an undefined color "${cell.color}".` });
         }
         if (cell.color) {
@@ -60,7 +69,7 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Pipe cell ${cellPos} cannot have more than 5 colors.` });
         }
         cell.colors?.forEach(pipeColor => {
-          if (!AVAILABLE_COLORS.includes(pipeColor) && !/^#[0-9A-Fa-f]{6}$/.test(pipeColor)) {
+          if (!AVAILABLE_COLORS.includes(pipeColor)) {
            // messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: Pipe cell ${cellPos} has an undefined color "${pipeColor}".` });
           }
           if (pipeColor) {
@@ -71,6 +80,11 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
       }
     });
   });
+
+  // Lock/Key validation
+  if (lockCount !== keyCount) {
+    messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Lock/Key Mismatch: Found ${lockCount} lock(s) and ${keyCount} key(s). The counts must be equal.`});
+  }
   
 
   // Bobbin Pair Validations
@@ -119,7 +133,7 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
     column.forEach((block: FabricBlockData, bIdx) => { 
       if (!block.color) {
         messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Fabric Area: Block at (Col ${cIdx + 1}, Stack pos ${bIdx + 1}) is missing a color.` });
-      } else if (!LIMITED_FABRIC_COLORS.includes(block.color) && !/^#[0-9A-Fa-f]{6}$/.test(block.color)) {
+      } else if (!LIMITED_FABRIC_COLORS.includes(block.color)) {
        // messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Fabric Area: Block at (Col ${cIdx + 1}, Stack pos ${bIdx + 1}) has an undefined color "${block.color}".` });
       }
       if (block.color) { 

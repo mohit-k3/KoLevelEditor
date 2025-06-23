@@ -23,38 +23,7 @@ export type BobbinColor =
   | "Black"
   | "DarkRed"
   | "Red"
-  | "LightRed"
-  | "Magenta"; // Added Magenta from previous step
-
-export const FABRIC_COLORS: BobbinColor[] = ["Red", "Blue", "Green"];
-
-export const BOBBIN_AREA_COLORS: BobbinColor[] = [
-  "LightPink",
-  "Pink",
-  "DarkPink",
-  "LightBrown",
-  "Brown",
-  "Orange",
-  "Yellow",
-  "LightYellow",
-  "Teal",
-  "DarkTeal",
-  "YellowGreen",
-  "Green",
-  "DarkGreen",
-  "DarkBlue",
-  "Blue",
-  "Lavender",
-  "Violet",
-  "Purple",
-  "White",
-  "Grey",
-  "Black",
-  "DarkRed",
-  "Red",
-  "LightRed",
-  "Magenta",
-];
+  | "LightRed";
 
 export type Difficulty = "Easy" | "Medium" | "Hard";
 
@@ -69,9 +38,10 @@ export interface BobbinPair {
 }
 
 export interface BobbinCell {
-  type: "bobbin" | "pipe" | "hidden" | "empty" | "ice"; // Added 'ice'
+  type: "bobbin" | "pipe" | "hidden" | "empty" | "ice";
   color?: BobbinColor; // For "bobbin", "hidden", "ice"
   colors?: BobbinColor[]; // For "pipe"
+  has?: 'lock' | 'key'; // Added for lock/key feature
 }
 
 export interface FabricBlockData {

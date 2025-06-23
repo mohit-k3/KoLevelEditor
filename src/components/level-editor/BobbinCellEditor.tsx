@@ -11,7 +11,7 @@ import { ColorPicker } from '@/components/shared/ColorPicker';
 import { NumberSpinner } from '@/components/shared/NumberSpinner';
 import { cn } from '@/lib/utils';
 import { useLevelData } from '@/contexts/LevelDataContext';
-import { EyeOffIcon, SnowflakeIcon } from 'lucide-react'; 
+import { EyeOffIcon, SnowflakeIcon, LockIcon, KeyIcon } from 'lucide-react'; 
 
 
 interface BobbinCellEditorProps {
@@ -48,7 +48,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   const { setActiveEditorArea } = useLevelData();
 
   const handleTypeChange = (newType: BobbinCell['type']) => {
-    const newCellData: BobbinCell = { type: newType };
+    const newCellData: BobbinCell = { type: newType, has: cell.has };
     if (newType === 'bobbin' || newType === 'hidden' || newType === 'ice') { 
       newCellData.color = cell.color || AVAILABLE_COLORS[0];
     } else if (newType === 'pipe') {
@@ -57,6 +57,9 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
       } else {
         newCellData.colors = [AVAILABLE_COLORS[0], AVAILABLE_COLORS[1]];
       }
+      delete newCellData.has; // Pipes cannot have lock/key
+    } else {
+       delete newCellData.has; // Empty cannot have lock/key
     }
     onCellChange(newCellData);
   };
@@ -64,6 +67,16 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   const handleColorChange = (color: BobbinColor) => {
     onCellChange({ ...cell, color });
   };
+  
+  const handleHasChange = (newHas: 'lock' | 'key' | 'none') => {
+    const newCell = {...cell};
+    if (newHas === 'none') {
+      delete newCell.has;
+    } else {
+      newCell.has = newHas;
+    }
+    onCellChange(newCell);
+  }
 
   const actualNumPipeColors = (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) 
     ? cell.colors.length 
@@ -87,30 +100,39 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   };
 
   const getCellDisplay = () => {
+    const iconClass = "w-4 h-4 text-white mix-blend-difference";
+    const accessoryIconClass = "absolute top-0.5 right-0.5 w-3 h-3 text-black/70 bg-white/50 rounded-full p-0.5"
+
+    const accessory = cell.has === 'lock' ? <LockIcon className={accessoryIconClass} />
+                    : cell.has === 'key' ? <KeyIcon className={accessoryIconClass} />
+                    : null;
+
     switch (cell.type) {
       case 'bobbin':
       case 'hidden':
         return (
           <div
             className={cn(
-              "w-full h-full rounded-sm flex items-center justify-center",
+              "w-full h-full rounded-sm flex items-center justify-center relative",
               cell.type === 'hidden' && 'opacity-50'
             )}
             style={{ backgroundColor: cell.color ? COLOR_MAP[cell.color] : 'transparent' }}
             aria-label={`${cellTypeDisplay[cell.type]} cell, color ${cell.color || 'none'}`}
           >
-            {cell.type === 'bobbin' && <SpoolIcon className="w-4 h-4 text-white mix-blend-difference" />}
-            {cell.type === 'hidden' && <EyeOffIcon className="w-4 h-4 text-white mix-blend-difference" />}
+            {cell.type === 'bobbin' && <SpoolIcon className={iconClass} />}
+            {cell.type === 'hidden' && <EyeOffIcon className={iconClass} />}
+            {accessory}
           </div>
         );
       case 'ice': 
         return (
           <div
-            className="w-full h-full rounded-sm flex items-center justify-center"
+            className="w-full h-full rounded-sm flex items-center justify-center relative"
             style={{ backgroundColor: cell.color ? COLOR_MAP[cell.color] : 'transparent' }}
             aria-label={`${cellTypeDisplay[cell.type]} cell, color ${cell.color || 'none'}`}
           >
-            <SnowflakeIcon className="w-4 h-4 text-white mix-blend-difference" />
+            <SnowflakeIcon className={iconClass} />
+            {accessory}
           </div>
         );
       case 'pipe':
@@ -140,6 +162,8 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
       setActiveEditorArea('bobbin'); 
     }
   };
+  
+  const canHaveAccessory = cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice';
 
   return (
     <Popover>
@@ -176,6 +200,24 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           </RadioGroup>
         </div>
 
+        {canHaveAccessory && (
+          <div>
+            <Label className="text-sm font-medium">Accessory</Label>
+             <RadioGroup
+              value={cell.has || 'none'}
+              onValueChange={(value) => handleHasChange(value as 'lock' | 'key' | 'none')}
+              className="mt-1 grid grid-cols-3 gap-2"
+            >
+              {(['none', 'lock', 'key'] as const).map(item => (
+                <div key={item} className="flex items-center space-x-2">
+                  <RadioGroupItem value={item} id={`has-${item}-${rowIndex}-${colIndex}`} />
+                  <Label htmlFor={`has-${item}-${rowIndex}-${colIndex}`} className="text-sm capitalize">{item}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+        )}
+
         {(cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') && ( 
           <div>
             <Label htmlFor={`color-${rowIndex}-${colIndex}`} className="text-sm font-medium">Color</Label>
@@ -188,7 +230,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             />
           </div>
         )}
-
+        
         {cell.type === 'pipe' && (
           <div className="space-y-3">
             <div>
