@@ -5,6 +5,7 @@ import type {
   BobbinColor,
   Difficulty,
   BobbinPair,
+  BobbinChain,
 } from "./types";
 
 export const DEFAULT_LEVEL_NUMBER = 1;
@@ -40,32 +41,7 @@ export const AVAILABLE_COLORS: BobbinColor[] = [
   "Red",
   "LightRed",
 ];
-export const LIMITED_FABRIC_COLORS: BobbinColor[] = [
-  "LightPink",
-  "Pink",
-  "DarkPink",
-  "LightBrown",
-  "Brown",
-  "Orange",
-  "Yellow",
-  "LightYellow",
-  "Teal",
-  "DarkTeal",
-  "YellowGreen",
-  "Green",
-  "DarkGreen",
-  "DarkBlue",
-  "Blue",
-  "Lavender",
-  "Violet",
-  "Purple",
-  "White",
-  "Grey",
-  "Black",
-  "DarkRed",
-  "Red",
-  "LightRed",
-];
+export const LIMITED_FABRIC_COLORS: BobbinColor[] = [...AVAILABLE_COLORS];
 
 export const createEmptyBobbinCell = (): BobbinCell => ({ type: "empty" });
 
@@ -88,7 +64,9 @@ export const createDefaultLevelData = (): LevelData => ({
       .map(() =>
         Array(DEFAULT_BOBBIN_COLS).fill(null).map(createEmptyBobbinCell)
       ),
-    pairs: [], // Initialize pairs as an empty array
+    pairs: [], 
+    chains: [],
+    pins: [],
   },
   fabricArea: {
     cols: DEFAULT_FABRIC_COLS,
@@ -106,7 +84,6 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
     rows: 7,
     cols: 7,
     cells: [
-      // ... (cell data remains the same)
       [
         { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Red" },
@@ -117,8 +94,8 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "bobbin", color: "Green" },
       ],
       [
-        { type: "bobbin", color: "Blue" },
-        { type: "empty" },
+        { type: "bobbin", color: "Blue", has: "key" },
+        { type: "bobbin", color: "Red"},
         { type: "empty" },
         { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Blue" },
@@ -127,7 +104,6 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
       ],
       [
         { type: "empty" },
-        { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Blue" },
         { type: "bobbin", color: "Green" },
         { type: "bobbin", color: "Red" },
@@ -135,7 +111,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "bobbin", color: "Blue" },
       ],
       [
-        { type: "bobbin", color: "Green" },
+        { type: "bobbin", color: "Green", has: "lock" },
         { type: "bobbin", color: "Red" },
         { type: "pipe", colors: ["Red", "Blue", "Green"] },
         { type: "bobbin", color: "Blue" },
@@ -168,13 +144,19 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "bobbin", color: "Blue" },
         { type: "bobbin", color: "Green" },
         { type: "bobbin", color: "Red" },
-        { type: "hidden", color: "Blue" },
+        { type: "hidden", color: "Blue", has: "chain-key" },
       ],
     ],
     pairs: [
-      // Example pair
       { from: { row: 0, col: 1 }, to: { row: 3, col: 4 } },
     ],
+    chains: [
+      {
+        path: [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 1 }],
+        keyLocation: { row: 6, col: 6}
+      }
+    ],
+    pins: [],
   },
   fabricArea: {
     cols: 4,
@@ -215,6 +197,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
   },
 };
 
+
 export const COLOR_MAP: Record<string, string> = {
   LightPink: "hsl(var(--knitout-light-pink))",
   Pink: "hsl(var(--knitout-pink))",
@@ -242,4 +225,7 @@ export const COLOR_MAP: Record<string, string> = {
   LightRed: "hsl(var(--knitout-light-red))",
 };
 
-export const PAIRING_LINE_COLOR = "hsl(var(--primary))"; // Using primary color for pairing lines
+export const LINKING_LINE_COLOR = "hsl(var(--primary))"; 
+export const CHAIN_LINE_COLOR = "hsl(var(--accent))";
+export const CHAIN_KEY_LINK_COLOR = "hsl(var(--knitout-teal))";
+export const PIN_LINE_COLOR = "hsl(var(--knitout-grey))";

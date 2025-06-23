@@ -11,7 +11,7 @@ import { ColorPicker } from '@/components/shared/ColorPicker';
 import { NumberSpinner } from '@/components/shared/NumberSpinner';
 import { cn } from '@/lib/utils';
 import { useLevelData } from '@/contexts/LevelDataContext';
-import { EyeOffIcon, SnowflakeIcon } from 'lucide-react'; 
+import { EyeOffIcon, SnowflakeIcon, LockIcon, KeyIcon, KeySquare, Pin, Target } from 'lucide-react'; 
 
 
 interface BobbinCellEditorProps {
@@ -19,10 +19,19 @@ interface BobbinCellEditorProps {
   onCellChange: (newCell: BobbinCell) => void;
   rowIndex: number;
   colIndex: number;
-  isPairingMode: boolean;
-  onPairingClick: (rowIndex: number, colIndex: number) => void;
-  isSelectedForPairing: boolean;
-  isActuallyPaired: boolean;
+  isLinkingMode: boolean;
+  onLinkClick: (rowIndex: number, colIndex: number) => void;
+  isSelectedForLinking: boolean;
+  isActuallyLinked: boolean;
+  isChainingMode: boolean;
+  onChainClick: (rowIndex: number, colIndex: number) => void;
+  isActuallyInChain: boolean;
+  isSelectedChain: boolean;
+  isChainAwaitingKeyLink?: boolean;
+  isPinningMode: boolean;
+  onPinClick: (rowIndex: number, colIndex: number) => void;
+  isSelectedForPinning: boolean;
+  isActuallyPinned: boolean;
 }
 
 const cellTypeDisplay: Record<BobbinCell['type'], string> = {
@@ -40,15 +49,24 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   onCellChange, 
   rowIndex, 
   colIndex,
-  isPairingMode,
-  onPairingClick,
-  isSelectedForPairing,
-  isActuallyPaired
+  isLinkingMode,
+  onLinkClick,
+  isSelectedForLinking,
+  isActuallyLinked,
+  isChainingMode,
+  onChainClick,
+  isActuallyInChain,
+  isSelectedChain,
+  isChainAwaitingKeyLink,
+  isPinningMode,
+  onPinClick,
+  isSelectedForPinning,
+  isActuallyPinned,
 }) => {
   const { setActiveEditorArea } = useLevelData();
 
   const handleTypeChange = (newType: BobbinCell['type']) => {
-    const newCellData: BobbinCell = { type: newType };
+    const newCellData: BobbinCell = { type: newType, has: cell.has };
     if (newType === 'bobbin' || newType === 'hidden' || newType === 'ice') { 
       newCellData.color = cell.color || AVAILABLE_COLORS[0];
     } else if (newType === 'pipe') {
@@ -57,6 +75,9 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
       } else {
         newCellData.colors = [AVAILABLE_COLORS[0], AVAILABLE_COLORS[1]];
       }
+      delete newCellData.has; // Pipes cannot have accessories
+    } else {
+       delete newCellData.has; // Empty cannot have accessories
     }
     onCellChange(newCellData);
   };
@@ -64,6 +85,16 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   const handleColorChange = (color: BobbinColor) => {
     onCellChange({ ...cell, color });
   };
+  
+  const handleHasChange = (newHas: 'lock' | 'key' | 'chain-key' | 'pin-head' | 'pin-tail' | 'none') => {
+    const newCell = {...cell};
+    if (newHas === 'none') {
+      delete newCell.has;
+    } else {
+      newCell.has = newHas;
+    }
+    onCellChange(newCell);
+  }
 
   const actualNumPipeColors = (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) 
     ? cell.colors.length 
@@ -87,30 +118,42 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   };
 
   const getCellDisplay = () => {
+    const iconClass = "w-4 h-4 text-white mix-blend-difference";
+    const accessoryIconClass = "absolute top-0.5 right-0.5 w-3 h-3 text-black/70 bg-white/50 rounded-full p-0.5"
+
+    const accessory = cell.has === 'lock' ? <LockIcon className={accessoryIconClass} />
+                    : cell.has === 'key' ? <KeyIcon className={accessoryIconClass} />
+                    : cell.has === 'chain-key' ? <KeySquare className={accessoryIconClass} />
+                    : cell.has === 'pin-head' ? <Pin className={accessoryIconClass} />
+                    : cell.has === 'pin-tail' ? <Target className={accessoryIconClass} />
+                    : null;
+
     switch (cell.type) {
       case 'bobbin':
       case 'hidden':
         return (
           <div
             className={cn(
-              "w-full h-full rounded-sm flex items-center justify-center",
+              "w-full h-full rounded-sm flex items-center justify-center relative",
               cell.type === 'hidden' && 'opacity-50'
             )}
             style={{ backgroundColor: cell.color ? COLOR_MAP[cell.color] : 'transparent' }}
             aria-label={`${cellTypeDisplay[cell.type]} cell, color ${cell.color || 'none'}`}
           >
-            {cell.type === 'bobbin' && <SpoolIcon className="w-4 h-4 text-white mix-blend-difference" />}
-            {cell.type === 'hidden' && <EyeOffIcon className="w-4 h-4 text-white mix-blend-difference" />}
+            {cell.type === 'bobbin' && <SpoolIcon className={iconClass} />}
+            {cell.type === 'hidden' && <EyeOffIcon className={iconClass} />}
+            {accessory}
           </div>
         );
       case 'ice': 
         return (
           <div
-            className="w-full h-full rounded-sm flex items-center justify-center"
+            className="w-full h-full rounded-sm flex items-center justify-center relative"
             style={{ backgroundColor: cell.color ? COLOR_MAP[cell.color] : 'transparent' }}
             aria-label={`${cellTypeDisplay[cell.type]} cell, color ${cell.color || 'none'}`}
           >
-            <SnowflakeIcon className="w-4 h-4 text-white mix-blend-difference" />
+            <SnowflakeIcon className={iconClass} />
+            {accessory}
           </div>
         );
       case 'pipe':
@@ -133,13 +176,21 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   };
 
   const handleButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (isPairingMode) {
+    if (isLinkingMode) {
       event.preventDefault(); 
-      onPairingClick(rowIndex, colIndex);
+      onLinkClick(rowIndex, colIndex);
+    } else if (isChainingMode) {
+      event.preventDefault();
+      onChainClick(rowIndex, colIndex);
+    } else if (isPinningMode) {
+      event.preventDefault();
+      onPinClick(rowIndex, colIndex);
     } else {
       setActiveEditorArea('bobbin'); 
     }
   };
+  
+  const canHaveAccessory = cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice';
 
   return (
     <Popover>
@@ -148,11 +199,16 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           variant="outline"
           className={cn(
             "w-12 h-12 p-0 m-0.5 aspect-square focus:ring-2 focus:ring-ring focus:ring-offset-2 relative",
-            isPairingMode && "cursor-crosshair hover:bg-accent/20",
-            isSelectedForPairing && "ring-2 ring-accent ring-offset-background shadow-lg",
-            isActuallyPaired && !isSelectedForPairing && "border-primary/50 border-2" 
+            (isLinkingMode || isChainingMode || isPinningMode) && "cursor-crosshair hover:bg-accent/20",
+            isSelectedForLinking && "ring-2 ring-accent ring-offset-background shadow-lg",
+            isActuallyLinked && !isSelectedForLinking && "border-primary/50 border-2",
+            isActuallyInChain && !isSelectedChain && "border-accent/50 border-2",
+            isSelectedChain && "ring-2 ring-accent ring-offset-background shadow-lg",
+            isChainAwaitingKeyLink && "ring-2 ring-blue-500 ring-offset-background shadow-lg",
+            isSelectedForPinning && "ring-2 ring-orange-400 ring-offset-background shadow-lg",
+            isActuallyPinned && !isSelectedForPinning && "border-orange-500/50 border-2",
           )}
-          aria-label={`Edit cell at row ${rowIndex + 1}, column ${colIndex + 1}. Current type: ${cellTypeDisplay[cell.type]}${isPairingMode ? '. Pairing mode active.' : ''}${isActuallyPaired ? ' Paired.' : ''}`}
+          aria-label={`Edit cell at row ${rowIndex + 1}, column ${colIndex + 1}. Current type: ${cellTypeDisplay[cell.type]}`}
           onClick={handleButtonClick}
         >
           {getCellDisplay()}
@@ -176,6 +232,24 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           </RadioGroup>
         </div>
 
+        {canHaveAccessory && (
+          <div>
+            <Label className="text-sm font-medium">Accessory</Label>
+             <RadioGroup
+              value={cell.has || 'none'}
+              onValueChange={(value) => handleHasChange(value as any)}
+              className="mt-1 grid grid-cols-3 gap-2"
+            >
+              {(['none', 'lock', 'key', 'chain-key', 'pin-head', 'pin-tail'] as const).map(item => (
+                <div key={item} className="flex items-center space-x-2">
+                  <RadioGroupItem value={item} id={`has-${item}-${rowIndex}-${colIndex}`} />
+                  <Label htmlFor={`has-${item}-${rowIndex}-${colIndex}`} className="text-sm capitalize">{item.replace('-', ' ')}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+        )}
+
         {(cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') && ( 
           <div>
             <Label htmlFor={`color-${rowIndex}-${colIndex}`} className="text-sm font-medium">Color</Label>
@@ -188,7 +262,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             />
           </div>
         )}
-
+        
         {cell.type === 'pipe' && (
           <div className="space-y-3">
             <div>

@@ -3,11 +3,11 @@
 import React from 'react';
 import { useLevelData } from '@/contexts/LevelDataContext';
 import type { BobbinCell, FabricBlockData, LevelData, BobbinColor, BobbinPair } from '@/lib/types';
-import { COLOR_MAP, LIMITED_FABRIC_COLORS, createFabricBlock, PAIRING_LINE_COLOR } from '@/lib/constants';
+import { COLOR_MAP, LIMITED_FABRIC_COLORS, createFabricBlock, LINKING_LINE_COLOR, CHAIN_LINE_COLOR, CHAIN_KEY_LINK_COLOR, PIN_LINE_COLOR } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FabricBlockPopover } from './FabricBlockPopover';
-import { SnowflakeIcon } from 'lucide-react'; // Added SnowflakeIcon
+import { SnowflakeIcon, LockIcon, KeyIcon, KeySquare, Pin, Target } from 'lucide-react';
 
 
 interface LiveVisualizerProps {
@@ -22,7 +22,7 @@ const FABRIC_BLOCK_GAP = 2;
 const FABRIC_EMPTY_SLOT_COLOR = "hsl(var(--muted) / 0.5)"; 
 
 const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: boolean}> = ({ data, hasErrors }) => {
-  const { rows, cols, cells, pairs = [] } = data;
+  const { rows, cols, cells, pairs = [], chains = [], pins = [] } = data;
   const width = cols * CELL_SIZE;
   const height = rows * CELL_SIZE;
 
@@ -50,8 +50,21 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           
           let cellElement = <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" />;
 
+          const accessoryIcon = cell.has === 'lock' 
+              ? <LockIcon x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
+              : cell.has === 'key' 
+              ? <KeyIcon x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />
+              : cell.has === 'chain-key'
+              ? <KeySquare x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
+              : cell.has === 'pin-head'
+              ? <Pin x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
+              : cell.has === 'pin-tail'
+              ? <Target x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
+              : null;
+
           if (cell.type === 'hidden' && cell.color) {
             cellElement = (
+              <>
               <rect 
                 x={x + 0.5} 
                 y={y + 0.5} 
@@ -63,12 +76,15 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                 strokeWidth="1.5" 
                 strokeDasharray="3 3" 
               />
+              {accessoryIcon}
+              </>
             );
           }
 
           if (cell.type === 'bobbin' && cell.color) {
             const spoolColor = COLOR_MAP[cell.color] || cell.color;
             cellElement = (
+              <>
               <g transform={`translate(${x + CELL_SIZE / 2}, ${y + CELL_SIZE / 2})`}>
                 <rect 
                   x={-CELL_SIZE * SPOOL_WIDTH_RATIO / 2} 
@@ -81,10 +97,12 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                 <rect x={-CELL_SIZE / 2} y={-CELL_SIZE / 2} width={CELL_SIZE} height={CELL_SIZE * SPOOL_END_HEIGHT_RATIO} fill={spoolColor} opacity="0.7" rx="1"/>
                 <rect x={-CELL_SIZE / 2} y={CELL_SIZE / 2 * (1-SPOOL_END_HEIGHT_RATIO*2)} width={CELL_SIZE} height={CELL_SIZE * SPOOL_END_HEIGHT_RATIO} fill={spoolColor} opacity="0.7" rx="1"/>
               </g>
+              {accessoryIcon}
+              </>
             );
           }
           
-          if (cell.type === 'ice' && cell.color) { // Added 'ice' visualization
+          if (cell.type === 'ice' && cell.color) { 
             const iceColor = COLOR_MAP[cell.color] || cell.color;
             cellElement = (
               <g>
@@ -97,13 +115,14 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                   rx="2"
                 />
                 <SnowflakeIcon 
-                  x={x + CELL_SIZE / 2 - 8} // Center icon (assuming 16x16 icon)
+                  x={x + CELL_SIZE / 2 - 8}
                   y={y + CELL_SIZE / 2 - 8}
                   width="16" 
                   height="16" 
-                  color="hsl(var(--primary-foreground))" // Or a contrasting color
+                  color="hsl(var(--primary-foreground))"
                   opacity="0.75"
                 />
+                 {accessoryIcon}
               </g>
             );
           }
@@ -134,7 +153,75 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           return <React.Fragment key={`bobbin-${rIdx}-${cIdx}`}>{cellElement}</React.Fragment>;
         })
       )}
-       {/* Pairing Lines */}
+       {/* Chain Path Lines */}
+       {chains.map((chain, cIdx) => 
+        chain.path.map((coord, bIdx) => {
+          if (bIdx === chain.path.length - 1) return null; // No line from the last bobbin
+          const nextCoord = chain.path[bIdx+1];
+          const fromX = coord.col * CELL_SIZE + CELL_SIZE / 2;
+          const fromY = coord.row * CELL_SIZE + CELL_SIZE / 2;
+          const toX = nextCoord.col * CELL_SIZE + CELL_SIZE / 2;
+          const toY = nextCoord.row * CELL_SIZE + CELL_SIZE / 2;
+           return (
+            <line
+                key={`chain-line-${cIdx}-${bIdx}`}
+                x1={fromX}
+                y1={fromY}
+                x2={toX}
+                y2={toY}
+                stroke={CHAIN_LINE_COLOR}
+                strokeWidth="4"
+                strokeLinecap="round"
+                opacity="0.6"
+                className="pointer-events-none" 
+            />
+           );
+        })
+       )}
+       {/* Chain Key Link Lines */}
+       {chains.map((chain, cIdx) => {
+        if (!chain.keyLocation || chain.path.length === 0) return null;
+        const firstBobbinInPath = chain.path[0];
+        const fromX = firstBobbinInPath.col * CELL_SIZE + CELL_SIZE / 2;
+        const fromY = firstBobbinInPath.row * CELL_SIZE + CELL_SIZE / 2;
+        const toX = chain.keyLocation.col * CELL_SIZE + CELL_SIZE / 2;
+        const toY = chain.keyLocation.row * CELL_SIZE + CELL_SIZE / 2;
+         return (
+          <line
+            key={`chain-key-link-${cIdx}`}
+            x1={fromX}
+            y1={fromY}
+            x2={toX}
+            y2={toY}
+            stroke={CHAIN_KEY_LINK_COLOR}
+            strokeWidth="1.5"
+            strokeDasharray="5 3"
+            opacity="0.8"
+            className="pointer-events-none"
+          />
+        );
+      })}
+      {/* Pin Lines */}
+       {pins.map((pin, pIdx) => {
+        const fromX = pin.head.col * CELL_SIZE + CELL_SIZE / 2;
+        const fromY = pin.head.row * CELL_SIZE + CELL_SIZE / 2;
+        const toX = pin.tail.col * CELL_SIZE + CELL_SIZE / 2;
+        const toY = pin.tail.row * CELL_SIZE + CELL_SIZE / 2;
+        return (
+          <line
+            key={`pin-line-${pIdx}`}
+            x1={fromX}
+            y1={fromY}
+            x2={toX}
+            y2={toY}
+            stroke={PIN_LINE_COLOR}
+            strokeWidth="2"
+            strokeLinecap="round"
+            className="pointer-events-none" 
+          />
+        );
+      })}
+       {/* Linking Lines */}
        {pairs.map((pair, pIdx) => {
         const fromX = pair.from.col * CELL_SIZE + CELL_SIZE / 2;
         const fromY = pair.from.row * CELL_SIZE + CELL_SIZE / 2;
@@ -147,8 +234,9 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             y1={fromY}
             x2={toX}
             y2={toY}
-            stroke={PAIRING_LINE_COLOR}
+            stroke={LINKING_LINE_COLOR}
             strokeWidth="2"
+            strokeDasharray="4 2"
             strokeLinecap="round"
             className="pointer-events-none" 
           />
@@ -182,12 +270,12 @@ const FabricVisualizer: React.FC<{data: LevelData['fabricArea'], hasErrors: bool
       {Array.from({ length: cols }).map((_, cIdx) => 
         Array.from({ length: maxFabricHeight }).map((_, bIdxInVis) => { 
           const currentColumnSparse = columns[cIdx] || []; 
-          const dataIndexFromBottom = maxFabricHeight - 1 - bIdxInVis;
+          const dataIndexFromBottom = bIdxInVis; // Correctly maps visual top (0) to data bottom (0)
           const currentBlock = currentColumnSparse[dataIndexFromBottom];
 
 
           const x = cIdx * CELL_SIZE + FABRIC_BLOCK_GAP / 2;
-          const y = bIdxInVis * CELL_SIZE + FABRIC_BLOCK_GAP / 2; 
+          const y = (maxFabricHeight - 1 - bIdxInVis) * CELL_SIZE + FABRIC_BLOCK_GAP / 2; 
 
           const fillColor = currentBlock ? (COLOR_MAP[currentBlock.color] || currentBlock.color) : FABRIC_EMPTY_SLOT_COLOR;
           const strokeColor = currentBlock ? (COLOR_MAP[currentBlock.color] || currentBlock.color) : "hsl(var(--border))";
@@ -226,28 +314,17 @@ const FabricVisualizer: React.FC<{data: LevelData['fabricArea'], hasErrors: bool
                   rowIndexInVisualizer={bIdxInVis} 
                   onBlockChange={(newBlockState: FabricBlockData | null) => {
                     setLevelData(draft => {
-                      const currentSparseColumn = draft.fabricArea.columns[cIdx] || [];
-                      
-                      const visualColumnRepresentation: (FabricBlockData | null)[] = Array(draft.fabricArea.maxFabricHeight).fill(null);
-                      
-                      for (let j = 0; j < currentSparseColumn.length; j++) {
-                        const block = currentSparseColumn[j];
-                        const visualIndex = draft.fabricArea.maxFabricHeight - 1 - j;
-                        if (visualIndex >= 0 && visualIndex < draft.fabricArea.maxFabricHeight) {
-                          visualColumnRepresentation[visualIndex] = block;
+                        const originalColumn = draft.fabricArea.columns[cIdx] || [];
+                        const newColumn = [...originalColumn];
+                        
+                        if(newBlockState) {
+                           newColumn[dataIndexFromBottom] = newBlockState;
+                        } else {
+                           delete newColumn[dataIndexFromBottom];
                         }
-                      }
-                      
-                      visualColumnRepresentation[bIdxInVis] = newBlockState; 
-                                            
-                      const newSparseColumnResult: FabricBlockData[] = [];
-                      for (let k_visualRow = draft.fabricArea.maxFabricHeight - 1; k_visualRow >= 0; k_visualRow--) {
-                        const blockInSlot = visualColumnRepresentation[k_visualRow];
-                        if (blockInSlot) {
-                          newSparseColumnResult.push(blockInSlot);
-                        }
-                      }
-                      draft.fabricArea.columns[cIdx] = newSparseColumnResult;
+                        
+                        // Filter out empty slots to maintain a sparse array, but keep order
+                        draft.fabricArea.columns[cIdx] = newColumn.filter(Boolean);
                     });
                   }}
                 />
@@ -287,4 +364,3 @@ export const LiveVisualizer: React.FC<LiveVisualizerProps> = ({ editorType, clas
     </div>
   );
 };
-

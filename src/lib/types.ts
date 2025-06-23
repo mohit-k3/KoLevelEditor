@@ -23,40 +23,9 @@ export type BobbinColor =
   | "Black"
   | "DarkRed"
   | "Red"
-  | "LightRed"
-  | "Magenta"; // Added Magenta from previous step
+  | "LightRed";
 
-export const FABRIC_COLORS: BobbinColor[] = ["Red", "Blue", "Green"];
-
-export const BOBBIN_AREA_COLORS: BobbinColor[] = [
-  "LightPink",
-  "Pink",
-  "DarkPink",
-  "LightBrown",
-  "Brown",
-  "Orange",
-  "Yellow",
-  "LightYellow",
-  "Teal",
-  "DarkTeal",
-  "YellowGreen",
-  "Green",
-  "DarkGreen",
-  "DarkBlue",
-  "Blue",
-  "Lavender",
-  "Violet",
-  "Purple",
-  "White",
-  "Grey",
-  "Black",
-  "DarkRed",
-  "Red",
-  "LightRed",
-  "Magenta",
-];
-
-export type Difficulty = "Easy" | "Medium" | "Hard" | "VeryHard";
+export type Difficulty = "Easy" | "Medium" | "Hard";
 
 export interface BobbinPairCoordinate {
   row: number;
@@ -68,10 +37,21 @@ export interface BobbinPair {
   to: BobbinPairCoordinate;
 }
 
+export interface BobbinChain {
+  path: BobbinPairCoordinate[];
+  keyLocation: BobbinPairCoordinate | null;
+}
+
+export interface BobbinPin {
+  head: BobbinPairCoordinate;
+  tail: BobbinPairCoordinate;
+}
+
 export interface BobbinCell {
-  type: "bobbin" | "pipe" | "hidden" | "empty" | "ice"; // Added 'ice'
+  type: "bobbin" | "pipe" | "hidden" | "empty" | "ice";
   color?: BobbinColor; // For "bobbin", "hidden", "ice"
   colors?: BobbinColor[]; // For "pipe"
+  has?: 'lock' | 'key' | 'chain-key' | 'pin-head' | 'pin-tail';
 }
 
 export interface FabricBlockData {
@@ -87,6 +67,8 @@ export interface LevelData {
     cols: number;
     cells: BobbinCell[][];
     pairs?: BobbinPair[];
+    chains?: BobbinChain[];
+    pins?: BobbinPin[];
   };
   fabricArea: {
     cols: number;
