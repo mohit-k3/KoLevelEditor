@@ -4,10 +4,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLevelData } from '@/contexts/LevelDataContext';
 import { NumberSpinner } from '@/components/shared/NumberSpinner';
 import { BobbinCellEditor } from './BobbinCellEditor';
-import type { BobbinCell, BobbinPairCoordinate, BobbinChain } from '@/lib/types';
+import type { BobbinCell, BobbinPairCoordinate, BobbinChain, BobbinPin } from '@/lib/types';
 import { createEmptyBobbinCell } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
-import { Copy, Trash2, Link2, Link2Off, LinkIcon, KeyRound } from 'lucide-react';
+import { Copy, Trash2, Link2, Link2Off, LinkIcon, KeyRound, Pin } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +29,7 @@ const areCoordsAdjacent = (c1: BobbinPairCoordinate, c2: BobbinPairCoordinate): 
 
 export const BobbinGridEditor: React.FC = () => {
   const { levelData, setLevelData } = useLevelData();
-  const { rows, cols, cells, pairs = [], chains = [] } = levelData.bobbinArea;
+  const { rows, cols, cells, pairs = [], chains = [], pins = [] } = levelData.bobbinArea;
   const { toast } = useToast();
   const gridRef = useRef<HTMLDivElement>(null);
   const [focusedCell, setFocusedCell] = useState<{ row: number; col: number } | null>(null);
@@ -43,6 +43,9 @@ export const BobbinGridEditor: React.FC = () => {
   const [activeChainIndex, setActiveChainIndex] = useState<number | null>(null);
   const [chainToLinkKey, setChainToLinkKey] = useState<number | null>(null);
 
+  // Pinning state
+  const [isPinningMode, setIsPinningMode] = useState(false);
+  const [pinStartNode, setPinStartNode] = useState<BobbinPairCoordinate | null>(null);
 
   const handleRowsChange = (newRows: number) => {
     setLevelData(draft => {
@@ -53,7 +56,7 @@ export const BobbinGridEditor: React.FC = () => {
         }
       } else if (newRows < currentRows) {
         draft.bobbinArea.cells = draft.bobbinArea.cells.slice(0, newRows);
-        // Clean up pairs, chains involving removed rows
+        // Clean up pairs, chains, pins involving removed rows
         if (draft.bobbinArea.pairs) {
           draft.bobbinArea.pairs = draft.bobbinArea.pairs.filter(p => p.from.row < newRows && p.to.row < newRows);
         }
@@ -66,6 +69,9 @@ export const BobbinGridEditor: React.FC = () => {
                 }
                 return { path: newPath, keyLocation: newKeyLocation };
             }).filter(chain => chain.path.length > 0);
+        }
+        if (draft.bobbinArea.pins) {
+          draft.bobbinArea.pins = draft.bobbinArea.pins.filter(p => p.head.row < newRows && p.tail.row < newRows);
         }
       }
       draft.bobbinArea.rows = newRows;
@@ -84,7 +90,7 @@ export const BobbinGridEditor: React.FC = () => {
           row.splice(newCols);
         }
       });
-      // Clean up pairs, chains involving removed columns
+      // Clean up pairs, chains, pins involving removed columns
       if (draft.bobbinArea.pairs) {
         draft.bobbinArea.pairs = draft.bobbinArea.pairs.filter(p => p.from.col < newCols && p.to.col < newCols);
       }
@@ -98,6 +104,9 @@ export const BobbinGridEditor: React.FC = () => {
               return { path: newPath, keyLocation: newKeyLocation };
           }).filter(chain => chain.path.length > 0);
         }
+       if (draft.bobbinArea.pins) {
+          draft.bobbinArea.pins = draft.bobbinArea.pins.filter(p => p.head.col < newCols && p.tail.col < newCols);
+       }
       draft.bobbinArea.cols = newCols;
     });
   };
@@ -106,7 +115,7 @@ export const BobbinGridEditor: React.FC = () => {
     setLevelData(draft => {
       draft.bobbinArea.cells[rowIndex][colIndex] = newCell;
       if (newCell.type === 'empty') {
-        // If cell becomes empty, remove any pairs or chain links involving it
+        // If cell becomes empty, remove any pairs or chain links or pins involving it
         if (draft.bobbinArea.pairs) {
             draft.bobbinArea.pairs = draft.bobbinArea.pairs.filter(p => !(p.from.row === rowIndex && p.from.col === colIndex) && !(p.to.row === rowIndex && p.to.col === colIndex));
         }
@@ -115,6 +124,9 @@ export const BobbinGridEditor: React.FC = () => {
                 ...chain,
                 path: chain.path.filter(coord => !(coord.row === rowIndex && coord.col === colIndex))
             })).filter(chain => chain.path.length > 0);
+        }
+         if (draft.bobbinArea.pins) {
+            draft.bobbinArea.pins = draft.bobbinArea.pins.filter(p => !(p.head.row === rowIndex && p.head.col === colIndex) && !(p.tail.row === rowIndex && p.tail.col === colIndex));
         }
       }
       // If a cell is no longer a chain key, unlink it from any chains
@@ -136,7 +148,7 @@ export const BobbinGridEditor: React.FC = () => {
       const rowToClone = JSON.parse(JSON.stringify(draft.bobbinArea.cells[rowIndex]));
       draft.bobbinArea.cells.splice(rowIndex + 1, 0, rowToClone);
       draft.bobbinArea.rows += 1;
-      // Adjust pairs and chains
+      // Adjust pairs, chains, and pins
       if (draft.bobbinArea.pairs) {
         draft.bobbinArea.pairs.forEach(p => {
           if (p.from.row > rowIndex) p.from.row++;
@@ -153,6 +165,12 @@ export const BobbinGridEditor: React.FC = () => {
             }
          });
       }
+      if (draft.bobbinArea.pins) {
+        draft.bobbinArea.pins.forEach(p => {
+          if (p.head.row > rowIndex) p.head.row++;
+          if (p.tail.row > rowIndex) p.tail.row++;
+        });
+      }
     });
     toast({ title: "Row Cloned", description: `Row ${rowIndex + 1} cloned successfully.` });
   };
@@ -166,13 +184,14 @@ export const BobbinGridEditor: React.FC = () => {
     setLevelData(draft => {
       draft.bobbinArea.cells.splice(rowIndex, 1);
       draft.bobbinArea.rows -= 1;
+      // Adjust pairs
       const newPairs = draft.bobbinArea.pairs?.filter(p => p.from.row !== rowIndex && p.to.row !== rowIndex)
           .map(p => ({
             from: { row: p.from.row > rowIndex ? p.from.row - 1 : p.from.row, col: p.from.col },
             to: { row: p.to.row > rowIndex ? p.to.row - 1 : p.to.row, col: p.to.col },
           })) || [];
       draft.bobbinArea.pairs = newPairs;
-
+      // Adjust chains
       const newChains = draft.bobbinArea.chains?.map(chain => {
             const newPath = chain.path.filter(coord => coord.row !== rowIndex)
                  .map(coord => ({ row: coord.row > rowIndex ? coord.row - 1 : coord.row, col: coord.col }));
@@ -184,17 +203,27 @@ export const BobbinGridEditor: React.FC = () => {
             return { path: newPath, keyLocation: newKeyLocation };
         }).filter(chain => chain.path.length > 0) || [];
       draft.bobbinArea.chains = newChains;
+      // Adjust pins
+      const newPins = draft.bobbinArea.pins?.filter(p => p.head.row !== rowIndex && p.tail.row !== rowIndex)
+          .map(p => ({
+            head: { row: p.head.row > rowIndex ? p.head.row - 1 : p.head.row, col: p.head.col },
+            tail: { row: p.tail.row > rowIndex ? p.tail.row - 1 : p.tail.row, col: p.tail.col },
+          })) || [];
+      draft.bobbinArea.pins = newPins;
     });
     toast({ title: "Row Deleted", description: `Row ${rowIndex + 1} deleted successfully.` });
   };
 
   const toggleLinkingMode = () => {
-    setIsLinkingMode(prev => !prev);
+    const willBeOn = !isLinkingMode;
+    setIsLinkingMode(willBeOn);
     setLinkStartNode(null); 
-    if (!isLinkingMode) {
+    if (willBeOn) {
       setIsChainingMode(false);
       setActiveChainIndex(null);
       setChainToLinkKey(null);
+      setIsPinningMode(false);
+      setPinStartNode(null);
     }
   };
   
@@ -206,8 +235,23 @@ export const BobbinGridEditor: React.FC = () => {
     if(willBeOn) {
         setIsLinkingMode(false);
         setLinkStartNode(null);
+        setIsPinningMode(false);
+        setPinStartNode(null);
     }
   }
+
+  const togglePinningMode = () => {
+    const willBeOn = !isPinningMode;
+    setIsPinningMode(willBeOn);
+    setPinStartNode(null);
+    if (willBeOn) {
+      setIsLinkingMode(false);
+      setLinkStartNode(null);
+      setIsChainingMode(false);
+      setActiveChainIndex(null);
+      setChainToLinkKey(null);
+    }
+  };
 
   const isCellLinked = (r: number, c: number): boolean => pairs.some(p => (p.from.row === r && p.from.col === c) || (p.to.row === r && p.to.col === c));
   const findChainIndexForCoord = (r:number, c:number): number => (chains || []).findIndex(chain => chain.path.some(coord => coord.row === r && coord.col === c));
@@ -216,18 +260,20 @@ export const BobbinGridEditor: React.FC = () => {
     if (activeChainIndex === null) return false;
     return chains[activeChainIndex]?.path.some(coord => coord.row === r && coord.col === c) || false;
   };
+  const isCellPinned = (r: number, c: number): boolean => pins.some(p => (p.head.row === r && p.head.col === c) || (p.tail.row === r && p.tail.col === c));
+
 
   const handleLinkClick = (rIdx: number, cIdx: number) => {
     if (!isLinkingMode) return;
 
     const clickedCell = cells[rIdx]?.[cIdx];
-    if (!clickedCell || (clickedCell.type !== 'bobbin' && clickedCell.type !== 'hidden' && clickedCell.type !== 'ice')) {
+    if (!clickedCell || (clickedCell.type === 'empty' || clickedCell.type === 'pipe')) {
       toast({ title: "Cannot Pair", description: "Only bobbins, hidden bobbins, or frozen bobbins can be paired.", variant: "destructive" });
       return;
     }
     
-    if(isCellInChain(rIdx, cIdx)) {
-        toast({ title: "Cannot Pair", description: "This bobbin is already part of a chain.", variant: "destructive" });
+    if(isCellInChain(rIdx, cIdx) || isCellPinned(rIdx, cIdx)) {
+        toast({ title: "Cannot Pair", description: "This bobbin is already part of a chain or pin.", variant: "destructive" });
         return;
     }
 
@@ -290,12 +336,12 @@ export const BobbinGridEditor: React.FC = () => {
     }
 
     const clickedCell = cells[rIdx]?.[cIdx];
-    if (!clickedCell || (clickedCell.type !== 'bobbin' && clickedCell.type !== 'hidden' && clickedCell.type !== 'ice')) {
+    if (!clickedCell || (clickedCell.type === 'empty' || clickedCell.type === 'pipe')) {
         toast({ title: "Cannot Chain", description: "Only bobbins, hidden bobbins, or frozen bobbins can be chained.", variant: "destructive" });
         return;
     }
-     if (isCellLinked(rIdx, cIdx)) {
-        toast({ title: "Cannot Chain", description: "This bobbin is already part of a pair.", variant: "destructive" });
+     if (isCellLinked(rIdx, cIdx) || isCellPinned(rIdx, cIdx)) {
+        toast({ title: "Cannot Chain", description: "This bobbin is already part of a pair or pin.", variant: "destructive" });
         return;
     }
 
@@ -345,7 +391,51 @@ export const BobbinGridEditor: React.FC = () => {
         }
     }
 
-  }
+  };
+
+  const handlePinClick = (rIdx: number, cIdx: number) => {
+    if (!isPinningMode) return;
+
+    const clickedCell = cells[rIdx]?.[cIdx];
+    if (!clickedCell || (clickedCell.type === 'empty' || clickedCell.type === 'pipe')) {
+      toast({ title: "Cannot Pin", description: "Only bobbins, hidden bobbins, or frozen bobbins can be pinned.", variant: "destructive" });
+      return;
+    }
+    if (isCellLinked(rIdx, cIdx) || isCellInChain(rIdx, cIdx)) {
+        toast({ title: "Cannot Pin", description: "This bobbin is already part of a pair or chain.", variant: "destructive" });
+        return;
+    }
+     const existingPinIndex = pins.findIndex(p => (p.head.row === rIdx && p.head.col === cIdx) || (p.tail.row === rIdx && p.tail.col === cIdx));
+     if (existingPinIndex !== -1) {
+        setLevelData(draft => { draft.bobbinArea.pins?.splice(existingPinIndex, 1); });
+        toast({ title: "Pin Removed", description: `Pin involving bobbin at (${rIdx + 1}, ${cIdx + 1}) removed.` });
+        return;
+    }
+    
+    if (pinStartNode) {
+      if (pinStartNode.row === rIdx && pinStartNode.col === cIdx) {
+        setPinStartNode(null);
+        return;
+      }
+      if (clickedCell.has !== 'pin-tail') {
+         toast({ title: "Invalid Target", description: "You must select a bobbin with a 'pin-tail' accessory.", variant: "destructive" });
+         return;
+      }
+      const newPin: BobbinPin = { head: pinStartNode, tail: {row: rIdx, col: cIdx} };
+      setLevelData(draft => {
+        if (!draft.bobbinArea.pins) draft.bobbinArea.pins = [];
+        draft.bobbinArea.pins.push(newPin);
+      });
+      toast({ title: "Pin Created", description: `Pinned bobbin at (${pinStartNode.row + 1}, ${pinStartNode.col + 1}) to (${rIdx + 1}, ${cIdx + 1}).` });
+      setPinStartNode(null);
+    } else {
+      if (clickedCell.has !== 'pin-head') {
+         toast({ title: "Invalid Start", description: "You must select a bobbin with a 'pin-head' accessory to start.", variant: "destructive" });
+         return;
+      }
+      setPinStartNode({ row: rIdx, col: cIdx });
+    }
+  };
   
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -453,6 +543,16 @@ export const BobbinGridEditor: React.FC = () => {
           <LinkIcon className="mr-2 h-4 w-4" />
           {isChainingMode ? "Chaining" : "Chain"}
         </Button>
+        <Button 
+          variant={isPinningMode ? "secondary" : "outline"} 
+          onClick={togglePinningMode}
+          title={isPinningMode ? "Disable Pinning Mode" : "Enable Pinning Mode"}
+          size="sm"
+          className="self-end"
+        >
+          <Pin className="mr-2 h-4 w-4" />
+          {isPinningMode ? "Pinning" : "Pin"}
+        </Button>
         {isChainingMode && activeChainIndex !== null && (
             <Button
                 variant="outline"
@@ -517,6 +617,10 @@ export const BobbinGridEditor: React.FC = () => {
                   isActuallyInChain={isCellInChain(rIdx, cIdx)}
                   isSelectedChain={isCellInActiveChain(rIdx, cIdx)}
                   isChainAwaitingKeyLink={chainToLinkKey !== null && findChainIndexForCoord(rIdx,cIdx) === chainToLinkKey}
+                  isPinningMode={isPinningMode}
+                  onPinClick={handlePinClick}
+                  isSelectedForPinning={!!pinStartNode && pinStartNode.row === rIdx && pinStartNode.col === cIdx}
+                  isActuallyPinned={isCellPinned(rIdx, cIdx)}
                 />
               ))}
             </React.Fragment>
@@ -528,6 +632,7 @@ export const BobbinGridEditor: React.FC = () => {
         {isLinkingMode && " Pairing mode: Click a bobbin to start. Click a second bobbin to create the pair. Click a paired bobbin to unpair."}
         {isChainingMode && chainToLinkKey === null && " Chaining mode: Click bobbin to start/select chain. Click adjacent bobbin to extend. Click last bobbin in chain to remove it."}
         {isChainingMode && chainToLinkKey !== null && ` Linking Key for Chain ${chainToLinkKey+1}: Click a bobbin with a 'chain-key' accessory.`}
+        {isPinningMode && " Pinning mode: Click a 'pin-head' bobbin to start. Click a 'pin-tail' bobbin to create the pin. Click a pinned bobbin to unpin."}
       </div>
     </div>
   );

@@ -66,6 +66,7 @@ export const createDefaultLevelData = (): LevelData => ({
       ),
     pairs: [], 
     chains: [],
+    pins: [],
   },
   fabricArea: {
     cols: DEFAULT_FABRIC_COLS,
@@ -154,7 +155,8 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         path: [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 1 }],
         keyLocation: { row: 6, col: 6}
       }
-    ]
+    ],
+    pins: [],
   },
   fabricArea: {
     cols: 4,
@@ -226,3 +228,4 @@ export const COLOR_MAP: Record<string, string> = {
 export const LINKING_LINE_COLOR = "hsl(var(--primary))"; 
 export const CHAIN_LINE_COLOR = "hsl(var(--accent))";
 export const CHAIN_KEY_LINK_COLOR = "hsl(var(--knitout-teal))";
+export const PIN_LINE_COLOR = "hsl(var(--knitout-grey))";

@@ -46,6 +46,8 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
   let lockCount = 0;
   let keyCount = 0;
   let chainKeyCount = 0;
+  let pinHeadCount = 0;
+  let pinTailCount = 0;
 
   data.bobbinArea.cells.forEach((row, rIdx) => {
     row.forEach((cell, cIdx) => {
@@ -54,9 +56,11 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
       if (cell.has === 'lock') lockCount++;
       if (cell.has === 'key') keyCount++;
       if (cell.has === 'chain-key') chainKeyCount++;
+      if (cell.has === 'pin-head') pinHeadCount++;
+      if (cell.has === 'pin-tail') pinTailCount++;
 
       if (cell.has && (cell.type === 'empty' || cell.type === 'pipe')) {
-        messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "${cell.type}" cannot have a lock or key.`});
+        messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "${cell.type}" cannot have an accessory.`});
       }
       
       if (cell.type === 'bobbin' || cell.type === 'hidden' || cell.type === 'ice') {
@@ -93,6 +97,11 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
   if (lockCount !== keyCount) {
     messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Lock/Key Mismatch: Found ${lockCount} lock(s) and ${keyCount} key(s). The counts must be equal.`});
   }
+
+  // Pin validation
+  if (pinHeadCount !== pinTailCount) {
+      messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Pin Mismatch: Found ${pinHeadCount} pin head(s) and ${pinTailCount} pin tail(s). The counts must be equal.` });
+  }
   
 
   // Bobbin Pair Validations
@@ -105,8 +114,8 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pairLabel} has out-of-bounds coordinate (R${coord.row + 1},C${coord.col + 1}).`});
         } else {
           const cell = data.bobbinArea.cells[coord.row]?.[coord.col];
-          if (cell?.type !== 'bobbin' && cell?.type !== 'hidden') { 
-             messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: ${pairLabel} involves a non-bobbin/hidden cell (R${coord.row+1},C${coord.col+1}) of type "${cell?.type}". Only bobbins or hidden bobbins should be paired.`});
+          if (cell?.type === 'empty' || cell?.type === 'pipe') { 
+             messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pairLabel} involves an un-pairable cell (R${coord.row+1},C${coord.col+1}) of type "${cell?.type}".`});
           }
         }
       });
@@ -187,6 +196,36 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
         });
     });
   }
+
+  // Bobbin Pin validations
+  const pinnedCellCoordinates = new Set<string>();
+  const pinHeads = new Map<string, BobbinPairCoordinate>();
+  const pinTails = new Map<string, BobbinPairCoordinate>();
+  
+  if (data.bobbinArea.pins) {
+    data.bobbinArea.pins.forEach((pin, pIdx) => {
+      const pinLabel = `Pin ${pIdx + 1} [(${pin.head.row+1},${pin.head.col+1}) to (${pin.tail.row+1},${pin.tail.col+1})]`;
+      const headKey = `${pin.head.row},${pin.head.col}`;
+      const tailKey = `${pin.tail.row},${pin.tail.col}`;
+
+      if (pinnedCellCoordinates.has(headKey) || pinnedCellCoordinates.has(tailKey)) {
+          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pinLabel} involves a bobbin that is already part of another pin.`});
+      }
+      pinnedCellCoordinates.add(headKey);
+      pinnedCellCoordinates.add(tailKey);
+
+      const headCell = data.bobbinArea.cells[pin.head.row]?.[pin.head.col];
+      const tailCell = data.bobbinArea.cells[pin.tail.row]?.[pin.tail.col];
+
+      if (headCell?.has !== 'pin-head') {
+          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pinLabel} start location is not a 'pin-head'.`});
+      }
+       if (tailCell?.has !== 'pin-tail') {
+          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pinLabel} end location is not a 'pin-tail'.`});
+      }
+    });
+  }
+
 
   // Fabric Area Validations
   if (data.fabricArea.cols !== data.fabricArea.columns.length) {

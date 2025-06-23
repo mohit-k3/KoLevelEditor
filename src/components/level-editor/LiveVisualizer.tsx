@@ -3,11 +3,11 @@
 import React from 'react';
 import { useLevelData } from '@/contexts/LevelDataContext';
 import type { BobbinCell, FabricBlockData, LevelData, BobbinColor, BobbinPair } from '@/lib/types';
-import { COLOR_MAP, LIMITED_FABRIC_COLORS, createFabricBlock, LINKING_LINE_COLOR, CHAIN_LINE_COLOR, CHAIN_KEY_LINK_COLOR } from '@/lib/constants';
+import { COLOR_MAP, LIMITED_FABRIC_COLORS, createFabricBlock, LINKING_LINE_COLOR, CHAIN_LINE_COLOR, CHAIN_KEY_LINK_COLOR, PIN_LINE_COLOR } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FabricBlockPopover } from './FabricBlockPopover';
-import { SnowflakeIcon, LockIcon, KeyIcon, KeySquare } from 'lucide-react';
+import { SnowflakeIcon, LockIcon, KeyIcon, KeySquare, Pin, Target } from 'lucide-react';
 
 
 interface LiveVisualizerProps {
@@ -22,7 +22,7 @@ const FABRIC_BLOCK_GAP = 2;
 const FABRIC_EMPTY_SLOT_COLOR = "hsl(var(--muted) / 0.5)"; 
 
 const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: boolean}> = ({ data, hasErrors }) => {
-  const { rows, cols, cells, pairs = [], chains = [] } = data;
+  const { rows, cols, cells, pairs = [], chains = [], pins = [] } = data;
   const width = cols * CELL_SIZE;
   const height = rows * CELL_SIZE;
 
@@ -56,6 +56,10 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
               ? <KeyIcon x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />
               : cell.has === 'chain-key'
               ? <KeySquare x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
+              : cell.has === 'pin-head'
+              ? <Pin x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
+              : cell.has === 'pin-tail'
+              ? <Target x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
               : null;
 
           if (cell.type === 'hidden' && cell.color) {
@@ -194,6 +198,26 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             strokeDasharray="5 3"
             opacity="0.8"
             className="pointer-events-none"
+          />
+        );
+      })}
+      {/* Pin Lines */}
+       {pins.map((pin, pIdx) => {
+        const fromX = pin.head.col * CELL_SIZE + CELL_SIZE / 2;
+        const fromY = pin.head.row * CELL_SIZE + CELL_SIZE / 2;
+        const toX = pin.tail.col * CELL_SIZE + CELL_SIZE / 2;
+        const toY = pin.tail.row * CELL_SIZE + CELL_SIZE / 2;
+        return (
+          <line
+            key={`pin-line-${pIdx}`}
+            x1={fromX}
+            y1={fromY}
+            x2={toX}
+            y2={toY}
+            stroke={PIN_LINE_COLOR}
+            strokeWidth="2"
+            strokeLinecap="round"
+            className="pointer-events-none" 
           />
         );
       })}
