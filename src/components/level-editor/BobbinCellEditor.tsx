@@ -23,6 +23,10 @@ interface BobbinCellEditorProps {
   onLinkClick: (rowIndex: number, colIndex: number) => void;
   isSelectedForLinking: boolean;
   isActuallyLinked: boolean;
+  isChainingMode: boolean;
+  onChainClick: (rowIndex: number, colIndex: number) => void;
+  isActuallyInChain: boolean;
+  isSelectedChain: boolean;
 }
 
 const cellTypeDisplay: Record<BobbinCell['type'], string> = {
@@ -43,7 +47,11 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   isLinkingMode,
   onLinkClick,
   isSelectedForLinking,
-  isActuallyLinked
+  isActuallyLinked,
+  isChainingMode,
+  onChainClick,
+  isActuallyInChain,
+  isSelectedChain
 }) => {
   const { setActiveEditorArea } = useLevelData();
 
@@ -158,6 +166,9 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
     if (isLinkingMode) {
       event.preventDefault(); 
       onLinkClick(rowIndex, colIndex);
+    } else if (isChainingMode) {
+      event.preventDefault();
+      onChainClick(rowIndex, colIndex);
     } else {
       setActiveEditorArea('bobbin'); 
     }
@@ -172,9 +183,11 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           variant="outline"
           className={cn(
             "w-12 h-12 p-0 m-0.5 aspect-square focus:ring-2 focus:ring-ring focus:ring-offset-2 relative",
-            isLinkingMode && "cursor-crosshair hover:bg-accent/20",
+            (isLinkingMode || isChainingMode) && "cursor-crosshair hover:bg-accent/20",
             isSelectedForLinking && "ring-2 ring-accent ring-offset-background shadow-lg",
-            isActuallyLinked && !isSelectedForLinking && "border-primary/50 border-2" 
+            isActuallyLinked && !isSelectedForLinking && "border-primary/50 border-2",
+            isActuallyInChain && !isSelectedChain && "border-accent/50 border-2",
+            isSelectedChain && "ring-2 ring-accent ring-offset-background shadow-lg"
           )}
           aria-label={`Edit cell at row ${rowIndex + 1}, column ${colIndex + 1}. Current type: ${cellTypeDisplay[cell.type]}${isLinkingMode ? '. Linking mode active.' : ''}${isActuallyLinked ? ' Linked.' : ''}`}
           onClick={handleButtonClick}

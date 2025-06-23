@@ -1,11 +1,17 @@
 
-import type { LevelData, ValidationMessage, BobbinColor, FabricBlockData, Difficulty, BobbinPairCoordinate } from './types';
+import type { LevelData, ValidationMessage, BobbinColor, FabricBlockData, Difficulty, BobbinPairCoordinate, BobbinChain } from './types';
 import { AVAILABLE_COLORS, LIMITED_FABRIC_COLORS } from './constants';
 
 const VALID_DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 
 function isCoordEqual(c1: BobbinPairCoordinate, c2: BobbinPairCoordinate): boolean {
   return c1.row === c2.row && c1.col === c2.col;
+}
+
+function areCoordsAdjacent(c1: BobbinPairCoordinate, c2: BobbinPairCoordinate): boolean {
+    const rowDiff = Math.abs(c1.row - c2.row);
+    const colDiff = Math.abs(c1.col - c2.col);
+    return rowDiff + colDiff === 1;
 }
 
 export const validateLevelData = (data: LevelData): ValidationMessage[] => {
@@ -117,6 +123,62 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Bobbin at (R${pair.to.row+1},C${pair.to.col+1}) is part of multiple pairs.`});
       }
       pairedCellCoordinates.add(toKey);
+    });
+  }
+
+  // Bobbin Chain Validations
+  const chainedCellCoordinates = new Set<string>();
+  if (data.bobbinArea.chains) {
+    data.bobbinArea.chains.forEach((chain, cIdx) => {
+        const chainLabel = `Chain ${cIdx + 1}`;
+        let chainHasKey = false;
+
+        if(chain.length < 1) {
+            // This case should ideally be prevented by the UI, but good to have
+            messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: ${chainLabel} is empty.`});
+            return;
+        }
+
+        chain.forEach((coord, bIdx) => {
+            const coordKey = `${coord.row},${coord.col}`;
+            const coordLabel = `(R${coord.row + 1},C${coord.col + 1})`;
+            
+            // Check for out of bounds
+            if (coord.row < 0 || coord.row >= bobbinRows || coord.col < 0 || coord.col >= bobbinCols) {
+                messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${chainLabel} has an out-of-bounds coordinate ${coordLabel}.`});
+                return;
+            }
+
+            // Check if bobbin is in multiple chains or in a pair
+            if (chainedCellCoordinates.has(coordKey)) {
+                messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Bobbin ${coordLabel} is part of multiple chains.`});
+            }
+            chainedCellCoordinates.add(coordKey);
+            if (pairedCellCoordinates.has(coordKey)) {
+                messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Bobbin ${coordLabel} cannot be in both a pair and a chain.`});
+            }
+
+            const cell = data.bobbinArea.cells[coord.row][coord.col];
+            if (cell.has === 'key') {
+                chainHasKey = true;
+            }
+            if (cell.type === 'empty' || cell.type === 'pipe') {
+                 messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Bobbin ${coordLabel} in ${chainLabel} is of an un-chainable type "${cell.type}".`});
+            }
+
+
+            // Check for adjacency with the next bobbin in the chain
+            if (bIdx < chain.length - 1) {
+                const nextCoord = chain[bIdx + 1];
+                if (!areCoordsAdjacent(coord, nextCoord)) {
+                    messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${chainLabel} has non-adjacent bobbins between ${coordLabel} and (R${nextCoord.row + 1},C${nextCoord.col + 1}).`});
+                }
+            }
+        });
+
+        if (!chainHasKey) {
+            messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${chainLabel} must contain at least one bobbin with a key.`});
+        }
     });
   }
 

@@ -37,6 +37,8 @@ export interface BobbinPair {
   to: BobbinPairCoordinate;
 }
 
+export type BobbinChain = BobbinPairCoordinate[];
+
 export interface BobbinCell {
   type: "bobbin" | "pipe" | "hidden" | "empty" | "ice";
   color?: BobbinColor; // For "bobbin", "hidden", "ice"
@@ -57,6 +59,7 @@ export interface LevelData {
     cols: number;
     cells: BobbinCell[][];
     pairs?: BobbinPair[];
+    chains?: BobbinChain[];
   };
   fabricArea: {
     cols: number;

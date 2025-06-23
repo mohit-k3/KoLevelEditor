@@ -63,7 +63,8 @@ export const createDefaultLevelData = (): LevelData => ({
       .map(() =>
         Array(DEFAULT_BOBBIN_COLS).fill(null).map(createEmptyBobbinCell)
       ),
-    pairs: [], // Initialize pairs as an empty array
+    pairs: [], 
+    chains: [],
   },
   fabricArea: {
     cols: DEFAULT_FABRIC_COLS,
@@ -82,7 +83,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
     cols: 7,
     cells: [
       [
-        { type: "bobbin", color: "Red", has: "key" },
+        { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Blue" },
         { type: "bobbin", color: "Green" },
@@ -91,8 +92,8 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "bobbin", color: "Green" },
       ],
       [
-        { type: "bobbin", color: "Blue" },
-        { type: "empty" },
+        { type: "bobbin", color: "Blue", has: "key" },
+        { type: "bobbin", color: "Red"},
         { type: "empty" },
         { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Blue" },
@@ -101,7 +102,6 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
       ],
       [
         { type: "empty" },
-        { type: "bobbin", color: "Red" },
         { type: "bobbin", color: "Blue" },
         { type: "bobbin", color: "Green" },
         { type: "bobbin", color: "Red" },
@@ -148,6 +148,9 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
     pairs: [
       { from: { row: 0, col: 1 }, to: { row: 3, col: 4 } },
     ],
+    chains: [
+      [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 1 }]
+    ]
   },
   fabricArea: {
     cols: 4,
@@ -216,4 +219,5 @@ export const COLOR_MAP: Record<string, string> = {
   LightRed: "hsl(var(--knitout-light-red))",
 };
 
-export const LINKING_LINE_COLOR = "hsl(var(--primary))"; // Using primary color for linking lines
+export const LINKING_LINE_COLOR = "hsl(var(--primary))"; 
+export const CHAIN_LINE_COLOR = "hsl(var(--accent))";
