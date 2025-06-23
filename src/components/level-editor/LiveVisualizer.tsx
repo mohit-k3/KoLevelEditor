@@ -29,9 +29,12 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
   const getAccessoryIcon = (cell: BobbinCell, x: number, y: number) => {
     if (!cell.has) return null;
 
-    const iconColor = (cell.type === 'bobbin' && cell.color) 
-        ? COLOR_MAP[cell.color] 
-        : "hsl(var(--foreground))";
+    const getAccessoryColor = () => {
+        if ((cell.has === 'lock' || cell.has === 'key') && cell.accessoryColor) {
+            return COLOR_MAP[cell.accessoryColor];
+        }
+        return "hsl(var(--foreground))";
+    };
 
     const commonProps = {
         x: x + CELL_SIZE - 12,
@@ -43,9 +46,9 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
 
     switch(cell.has) {
         case 'lock': 
-            return <LockIcon {...commonProps} color={iconColor} />;
+            return <LockIcon {...commonProps} color={getAccessoryColor()} />;
         case 'key': 
-            return <KeyIcon {...commonProps} color={iconColor} transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />;
+            return <KeyIcon {...commonProps} color={getAccessoryColor()} transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />;
         case 'chain-key':
             return <KeySquare {...commonProps} color={"hsl(var(--foreground))"} />;
         case 'pin-head':

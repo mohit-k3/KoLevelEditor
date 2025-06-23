@@ -57,16 +57,15 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
         if (cell.has === 'pin-head') pinHeadCount++;
         if (cell.has === 'pin-tail') pinTailCount++;
 
-        if (cell.color) {
-          if (cell.has === 'lock') {
-            const counts = lockKeyColorCounts.get(cell.color) || { locks: 0, keys: 0 };
-            counts.locks++;
-            lockKeyColorCounts.set(cell.color, counts);
-          }
-          if (cell.has === 'key') {
-            const counts = lockKeyColorCounts.get(cell.color) || { locks: 0, keys: 0 };
-            counts.keys++;
-            lockKeyColorCounts.set(cell.color, counts);
+        if (cell.has === 'lock' || cell.has === 'key') {
+          if (!cell.accessoryColor) {
+            messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} with a ${cell.has} is missing an accessory color.` });
+          } else {
+            const color = cell.accessoryColor;
+            const counts = lockKeyColorCounts.get(color) || { locks: 0, keys: 0 };
+            if (cell.has === 'lock') counts.locks++;
+            if (cell.has === 'key') counts.keys++;
+            lockKeyColorCounts.set(color, counts);
           }
         }
 

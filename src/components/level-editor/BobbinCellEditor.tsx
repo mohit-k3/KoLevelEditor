@@ -72,6 +72,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
         newCellData.hidden = cell.hidden;
         newCellData.ice = cell.ice;
         newCellData.has = cell.has;
+        newCellData.accessoryColor = cell.accessoryColor;
       }
     } else if (newType === 'pipe') {
       if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) {
@@ -89,14 +90,26 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   };
   
   const handleHasChange = (newHas: 'lock' | 'key' | 'chain-key' | 'pin-head' | 'pin-tail' | 'none') => {
-    const newCell = {...cell};
+    const newCell: BobbinCell = {...cell};
     if (newHas === 'none') {
       delete newCell.has;
+      delete newCell.accessoryColor;
     } else {
       newCell.has = newHas;
+      if (newHas === 'lock' || newHas === 'key') {
+        if (!newCell.accessoryColor) {
+          newCell.accessoryColor = AVAILABLE_COLORS[0];
+        }
+      } else {
+        delete newCell.accessoryColor;
+      }
     }
     onCellChange(newCell);
-  }
+  };
+
+  const handleAccessoryColorChange = (color: BobbinColor) => {
+    onCellChange({ ...cell, accessoryColor: color });
+  };
 
   const handleHiddenChange = (checked: boolean) => {
     const newCell: BobbinCell = { ...cell };
@@ -146,14 +159,18 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
     const accessory = (() => {
       if (!cell.has) return null;
     
-      const isBobbinWithColor = cell.type === 'bobbin' && cell.color;
-      const iconColor = isBobbinWithColor ? COLOR_MAP[cell.color] : 'black';
+      const getAccessoryColor = () => {
+        if ((cell.has === 'lock' || cell.has === 'key') && cell.accessoryColor) {
+          return COLOR_MAP[cell.accessoryColor];
+        }
+        return 'black';
+      };
     
       switch (cell.has) {
         case 'lock':
-          return <LockIcon className={accessoryIconClass} color={iconColor} />;
+          return <LockIcon className={accessoryIconClass} color={getAccessoryColor()} />;
         case 'key':
-          return <KeyIcon className={accessoryIconClass} color={iconColor} />;
+          return <KeyIcon className={accessoryIconClass} color={getAccessoryColor()} />;
         case 'chain-key':
           return <KeySquare className={accessoryIconClass} />;
         case 'pin-head':
@@ -295,9 +312,24 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
                 ))}
               </RadioGroup>
             </div>
+            
+            {(cell.has === 'lock' || cell.has === 'key') && (
+              <div>
+                <Label htmlFor={`accessory-color-${rowIndex}-${colIndex}`} className="text-sm font-medium">
+                  Accessory Color
+                </Label>
+                <ColorPicker
+                  id={`accessory-color-${rowIndex}-${colIndex}`}
+                  color={cell.accessoryColor || AVAILABLE_COLORS[0]}
+                  onChange={handleAccessoryColorChange}
+                  availableColors={AVAILABLE_COLORS}
+                  className="mt-1"
+                />
+              </div>
+            )}
 
             <div>
-              <Label htmlFor={`color-${rowIndex}-${colIndex}`} className="text-sm font-medium">Color</Label>
+              <Label htmlFor={`color-${rowIndex}-${colIndex}`} className="text-sm font-medium">Bobbin Color</Label>
               <ColorPicker
                 id={`color-${rowIndex}-${colIndex}`}
                 color={cell.color || AVAILABLE_COLORS[0]}

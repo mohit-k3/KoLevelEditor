@@ -52,6 +52,7 @@ export interface BobbinCell {
   color?: BobbinColor; // For "bobbin"
   colors?: BobbinColor[]; // For "pipe"
   has?: 'lock' | 'key' | 'chain-key' | 'pin-head' | 'pin-tail';
+  accessoryColor?: BobbinColor; // For "lock" and "key"
   hidden?: boolean; // For "bobbin"
   ice?: boolean; // For "bobbin"
 }
