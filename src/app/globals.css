@@ -7,8 +7,7 @@ body {
 }
 
 @layer base {
-  :root,
-  .dark {
+  :root {
     --background: 220 20% 96.1%;
     --foreground: 220 10% 10%;
     --card: 0 0% 100%;
@@ -34,6 +33,16 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+
+    /* Sidebar Variables */
+    --sidebar-background: 220 15% 94%;
+    --sidebar-foreground: 220 10% 10%;
+    --sidebar-primary: 262 49% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 90%;
+    --sidebar-accent-foreground: 220 10% 10%;
+    --sidebar-border: 220 13% 85%;
+    --sidebar-ring: 262 49% 50%;
 
     /* FULL KnitOut Colors (based on hex to HSL) */
     --knitout-light-pink: 330 51% 76%; /* #DD7AB1 */
@@ -63,19 +72,19 @@ body {
   }
 
   .dark {
-    --background: 220 10% 10%; /* Dark Gray */
-    --foreground: 220 20% 96.1%; /* Light Gray text */
+    --background: 220 10% 10%;
+    --foreground: 220 20% 96.1%;
     --card: 220 10% 15%;
     --card-foreground: 220 20% 96.1%;
     --popover: 220 10% 15%;
     --popover-foreground: 220 20% 96.1%;
-    --primary: 262 55% 60%; /* Lighter Deep Purple */
+    --primary: 262 55% 60%;
     --primary-foreground: 0 0% 100%;
     --secondary: 220 10% 20%;
     --secondary-foreground: 220 20% 90%;
     --muted: 220 10% 25%;
     --muted-foreground: 220 15% 60%;
-    --accent: 36 100% 55%; /* Lighter Bright Orange */
+    --accent: 36 100% 55%;
     --accent-foreground: 220 10% 10%;
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
@@ -83,20 +92,18 @@ body {
     --input: 220 10% 20%;
     --ring: 262 55% 60%;
 
-    /* Specific Knit Out colors (same for dark mode as per request) */
-    --knitout-red: 0 100% 50%;
-    --knitout-blue: 198 100% 56%;
-    --knitout-green: 120 60% 35%;
-    --knitout-yellow: 60 100% 50%;
-    --knitout-purple: 274 80% 45%;
-    --knitout-orange: 30 100% 50%;
-    --knitout-pink: 330 100% 70%;
-    --knitout-brown: 30 60% 40%;
-    --knitout-teal: 180 60% 40%;
-    --knitout-white: 0 0% 100%;
-    --knitout-dark-green: 120 60% 25%;
-    --knitout-gray: 0 0% 50%;
-    --knitout-black: 0 0% 20%;
+    /* Dark Mode Sidebar Variables */
+    --sidebar-background: 220 10% 12%;
+    --sidebar-foreground: 220 20% 96.1%;
+    --sidebar-primary: 262 55% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 10% 20%;
+    --sidebar-accent-foreground: 220 20% 90%;
+    --sidebar-border: 220 10% 25%;
+    --sidebar-ring: 262 55% 60%;
+
+    /* Overrides for specific Knit Out colors in dark mode if needed */
+    /* For now, they inherit from :root which is standard practice */
     --knitout-magenta: 300 100% 50%;
   }
 }
