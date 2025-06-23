@@ -53,7 +53,12 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
       const cellPos = `(R${rIdx + 1}, C${cIdx + 1})`;
 
       if (cell.type === 'bobbin') {
-        if (cell.has === 'chain-key') chainKeyCount++;
+        if (cell.has === 'chain-key') {
+            chainKeyCount++;
+            if (!cell.accessoryColor) {
+                messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Chain key at ${cellPos} is missing an accessory color.` });
+            }
+        }
         if (cell.has === 'pin-head') pinHeadCount++;
         if (cell.has === 'pin-tail') pinTailCount++;
 

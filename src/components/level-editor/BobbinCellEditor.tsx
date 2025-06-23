@@ -96,7 +96,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
       delete newCell.accessoryColor;
     } else {
       newCell.has = newHas;
-      if (newHas === 'lock' || newHas === 'key') {
+      if (newHas === 'lock' || newHas === 'key' || newHas === 'chain-key') {
         if (!newCell.accessoryColor) {
           newCell.accessoryColor = AVAILABLE_COLORS[0];
         }
@@ -160,7 +160,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
       if (!cell.has) return null;
     
       const getAccessoryColor = () => {
-        if ((cell.has === 'lock' || cell.has === 'key') && cell.accessoryColor) {
+        if ((cell.has === 'lock' || cell.has === 'key' || cell.has === 'chain-key') && cell.accessoryColor) {
           return COLOR_MAP[cell.accessoryColor];
         }
         return 'black';
@@ -172,7 +172,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
         case 'key':
           return <KeyIcon className={accessoryIconClass} color={getAccessoryColor()} />;
         case 'chain-key':
-          return <KeySquare className={accessoryIconClass} />;
+          return <KeySquare className={accessoryIconClass} color={getAccessoryColor()} />;
         case 'pin-head':
           return <Pin className={accessoryIconClass} />;
         case 'pin-tail':
@@ -313,7 +313,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
               </RadioGroup>
             </div>
             
-            {(cell.has === 'lock' || cell.has === 'key') && (
+            {(cell.has === 'lock' || cell.has === 'key' || cell.has === 'chain-key') && (
               <div>
                 <Label htmlFor={`accessory-color-${rowIndex}-${colIndex}`} className="text-sm font-medium">
                   Accessory Color
