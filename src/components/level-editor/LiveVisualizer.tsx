@@ -172,8 +172,18 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
         })
       )}
        {/* Chain Path Lines */}
-       {chains.map((chain, cIdx) => 
-        chain.path.map((coord, bIdx) => {
+       {chains.map((chain, cIdx) => {
+        const chainColor = (() => {
+          if (chain.keyLocation) {
+            const keyCell = cells[chain.keyLocation.row]?.[chain.keyLocation.col];
+            if (keyCell && keyCell.accessoryColor) {
+              return COLOR_MAP[keyCell.accessoryColor] || CHAIN_LINE_COLOR;
+            }
+          }
+          return CHAIN_LINE_COLOR;
+        })();
+        
+        return chain.path.map((coord, bIdx) => {
           if (bIdx === chain.path.length - 1) return null; // No line from the last bobbin
           const nextCoord = chain.path[bIdx+1];
           const fromX = coord.col * CELL_SIZE + CELL_SIZE / 2;
@@ -187,7 +197,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                 y1={fromY}
                 x2={toX}
                 y2={toY}
-                stroke={CHAIN_LINE_COLOR}
+                stroke={chainColor}
                 strokeWidth="4"
                 strokeLinecap="round"
                 opacity="0.6"
@@ -195,10 +205,19 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             />
            );
         })
-       )}
+       })}
        {/* Chain Key Link Lines */}
        {chains.map((chain, cIdx) => {
         if (!chain.keyLocation || chain.path.length === 0) return null;
+        const keyLinkColor = (() => {
+          if (chain.keyLocation) {
+            const keyCell = cells[chain.keyLocation.row]?.[chain.keyLocation.col];
+            if (keyCell && keyCell.accessoryColor) {
+              return COLOR_MAP[keyCell.accessoryColor] || CHAIN_KEY_LINK_COLOR;
+            }
+          }
+          return CHAIN_KEY_LINK_COLOR;
+        })();
         const firstBobbinInPath = chain.path[0];
         const fromX = firstBobbinInPath.col * CELL_SIZE + CELL_SIZE / 2;
         const fromY = firstBobbinInPath.row * CELL_SIZE + CELL_SIZE / 2;
@@ -211,7 +230,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             y1={fromY}
             x2={toX}
             y2={toY}
-            stroke={CHAIN_KEY_LINK_COLOR}
+            stroke={keyLinkColor}
             strokeWidth="1.5"
             strokeDasharray="5 3"
             opacity="0.8"
