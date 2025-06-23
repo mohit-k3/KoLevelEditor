@@ -19,10 +19,10 @@ interface BobbinCellEditorProps {
   onCellChange: (newCell: BobbinCell) => void;
   rowIndex: number;
   colIndex: number;
-  isPairingMode: boolean;
-  onPairingClick: (rowIndex: number, colIndex: number) => void;
-  isSelectedForPairing: boolean;
-  isActuallyPaired: boolean;
+  isLinkingMode: boolean;
+  onLinkClick: (rowIndex: number, colIndex: number) => void;
+  isSelectedForLinking: boolean;
+  isActuallyLinked: boolean;
 }
 
 const cellTypeDisplay: Record<BobbinCell['type'], string> = {
@@ -40,10 +40,10 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   onCellChange, 
   rowIndex, 
   colIndex,
-  isPairingMode,
-  onPairingClick,
-  isSelectedForPairing,
-  isActuallyPaired
+  isLinkingMode,
+  onLinkClick,
+  isSelectedForLinking,
+  isActuallyLinked
 }) => {
   const { setActiveEditorArea } = useLevelData();
 
@@ -155,9 +155,9 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   };
 
   const handleButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (isPairingMode) {
+    if (isLinkingMode) {
       event.preventDefault(); 
-      onPairingClick(rowIndex, colIndex);
+      onLinkClick(rowIndex, colIndex);
     } else {
       setActiveEditorArea('bobbin'); 
     }
@@ -172,11 +172,11 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           variant="outline"
           className={cn(
             "w-12 h-12 p-0 m-0.5 aspect-square focus:ring-2 focus:ring-ring focus:ring-offset-2 relative",
-            isPairingMode && "cursor-crosshair hover:bg-accent/20",
-            isSelectedForPairing && "ring-2 ring-accent ring-offset-background shadow-lg",
-            isActuallyPaired && !isSelectedForPairing && "border-primary/50 border-2" 
+            isLinkingMode && "cursor-crosshair hover:bg-accent/20",
+            isSelectedForLinking && "ring-2 ring-accent ring-offset-background shadow-lg",
+            isActuallyLinked && !isSelectedForLinking && "border-primary/50 border-2" 
           )}
-          aria-label={`Edit cell at row ${rowIndex + 1}, column ${colIndex + 1}. Current type: ${cellTypeDisplay[cell.type]}${isPairingMode ? '. Pairing mode active.' : ''}${isActuallyPaired ? ' Paired.' : ''}`}
+          aria-label={`Edit cell at row ${rowIndex + 1}, column ${colIndex + 1}. Current type: ${cellTypeDisplay[cell.type]}${isLinkingMode ? '. Linking mode active.' : ''}${isActuallyLinked ? ' Linked.' : ''}`}
           onClick={handleButtonClick}
         >
           {getCellDisplay()}

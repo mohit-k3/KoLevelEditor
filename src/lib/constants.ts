@@ -216,4 +216,4 @@ export const COLOR_MAP: Record<string, string> = {
   LightRed: "hsl(var(--knitout-light-red))",
 };
 
-export const PAIRING_LINE_COLOR = "hsl(var(--primary))"; // Using primary color for pairing lines
+export const LINKING_LINE_COLOR = "hsl(var(--primary))"; // Using primary color for linking lines

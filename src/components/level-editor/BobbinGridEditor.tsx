@@ -27,8 +27,8 @@ export const BobbinGridEditor: React.FC = () => {
   const { toast } = useToast();
   const gridRef = useRef<HTMLDivElement>(null);
   const [focusedCell, setFocusedCell] = useState<{ row: number; col: number } | null>(null);
-  const [isPairingMode, setIsPairingMode] = useState(false);
-  const [firstPairSelection, setFirstPairSelection] = useState<BobbinPairCoordinate | null>(null);
+  const [isLinkingMode, setIsLinkingMode] = useState(false);
+  const [linkStartNode, setLinkStartNode] = useState<BobbinPairCoordinate | null>(null);
 
   const handleRowsChange = (newRows: number) => {
     setLevelData(draft => {
@@ -124,23 +124,23 @@ export const BobbinGridEditor: React.FC = () => {
     toast({ title: "Row Deleted", description: `Row ${rowIndex + 1} deleted successfully.` });
   };
 
-  const togglePairingMode = () => {
-    setIsPairingMode(prev => !prev);
-    setFirstPairSelection(null); // Reset selection when toggling mode
+  const toggleLinkingMode = () => {
+    setIsLinkingMode(prev => !prev);
+    setLinkStartNode(null); // Reset selection when toggling mode
   };
 
-  const isCellPaired = (r: number, c: number): boolean => {
+  const isCellLinked = (r: number, c: number): boolean => {
     return pairs.some(p => 
       (p.from.row === r && p.from.col === c) || (p.to.row === r && p.to.col === c)
     );
   };
   
-  const handlePairingClick = (rIdx: number, cIdx: number) => {
-    if (!isPairingMode) return;
+  const handleLinkClick = (rIdx: number, cIdx: number) => {
+    if (!isLinkingMode) return;
 
     const clickedCell = cells[rIdx]?.[cIdx];
-    if (!clickedCell || (clickedCell.type !== 'bobbin' && clickedCell.type !== 'hidden')) {
-      toast({ title: "Cannot Pair", description: "Only bobbins or hidden bobbins can be paired.", variant: "destructive" });
+    if (!clickedCell || (clickedCell.type !== 'bobbin' && clickedCell.type !== 'hidden' && clickedCell.type !== 'ice')) {
+      toast({ title: "Cannot Link", description: "Only bobbins, hidden bobbins, or frozen bobbins can be linked.", variant: "destructive" });
       return;
     }
 
@@ -148,35 +148,35 @@ export const BobbinGridEditor: React.FC = () => {
       (p.from.row === rIdx && p.from.col === cIdx) || (p.to.row === rIdx && p.to.col === cIdx)
     );
 
-    if (firstPairSelection) { // This is the second click to form a pair
-      if (firstPairSelection.row === rIdx && firstPairSelection.col === cIdx) {
-        // Clicked the same cell again, deselect it
-        setFirstPairSelection(null);
+    if (linkStartNode) { // This is the second+ click in a chain
+      if (linkStartNode.row === rIdx && linkStartNode.col === cIdx) {
+        // Clicked the same cell again, deselect it and end the chain
+        setLinkStartNode(null);
         return;
       }
-      // Check if the second cell is already paired (and not with the firstPairSelection itself, though that's covered by existingPairIndex logic earlier)
-      if (isCellPaired(rIdx, cIdx)) {
-        toast({ title: "Cannot Pair", description: "This bobbin is already part of another pair. Unpair it first.", variant: "destructive" });
-        return;
-      }
-
+      
+      const newLinkTarget = { row: rIdx, col: cIdx };
       setLevelData(draft => {
         if (!draft.bobbinArea.pairs) draft.bobbinArea.pairs = [];
-        draft.bobbinArea.pairs.push({ from: firstPairSelection, to: { row: rIdx, col: cIdx } });
+        draft.bobbinArea.pairs.push({ from: linkStartNode, to: newLinkTarget });
       });
-      toast({ title: "Pair Created", description: `Bobbins at (${firstPairSelection.row + 1}, ${firstPairSelection.col + 1}) and (${rIdx + 1}, ${cIdx + 1}) paired.` });
-      setFirstPairSelection(null);
-      // setIsPairingMode(false); // Optionally turn off pairing mode after a pair is made
-    } else { // This is the first click or a click to unpair
+      toast({ title: "Link Created", description: `Bobbins at (${linkStartNode.row + 1}, ${linkStartNode.col + 1}) and (${rIdx + 1}, ${cIdx + 1}) linked.` });
+      // Crucially, set the new start node to the just-clicked cell to allow continuous chaining
+      setLinkStartNode(newLinkTarget);
+
+    } else { // This is the first click or a click to unlink
       if (existingPairIndex !== -1) {
-        // Clicked on an already paired bobbin, remove the pair
+        // Clicked on an already paired bobbin, remove all links involving it
         setLevelData(draft => {
-          draft.bobbinArea.pairs?.splice(existingPairIndex, 1);
+          draft.bobbinArea.pairs = draft.bobbinArea.pairs?.filter(p => 
+            !(p.from.row === rIdx && p.from.col === cIdx) && 
+            !(p.to.row === rIdx && p.to.col === cIdx)
+          );
         });
-        toast({ title: "Pair Removed", description: `Pair involving bobbin at (${rIdx + 1}, ${cIdx + 1}) removed.` });
+        toast({ title: "Links Removed", description: `All links involving bobbin at (${rIdx + 1}, ${cIdx + 1}) removed.` });
       } else {
-        // Start a new pair
-        setFirstPairSelection({ row: rIdx, col: cIdx });
+        // Start a new chain
+        setLinkStartNode({ row: rIdx, col: cIdx });
       }
     }
   };
@@ -186,10 +186,7 @@ export const BobbinGridEditor: React.FC = () => {
       if (!gridRef.current || !document.activeElement || !gridRef.current.contains(document.activeElement)) {
         const popoverTrigger = document.activeElement?.closest('[aria-haspopup="dialog"]');
         if(!popoverTrigger || !gridRef.current.contains(popoverTrigger)) {
-          // Allow global keybinds like undo/redo if focus is outside grid and not in a popover related to the grid.
           if (!(event.ctrlKey || event.metaKey)) return; 
-        } else {
-           // Focus is inside a popover related to the grid, or directly in the grid.
         }
       }
       
@@ -205,7 +202,6 @@ export const BobbinGridEditor: React.FC = () => {
         }
       }
 
-      // Handle specific key events only if focus is within the grid or related popover
       if (gridRef.current && (gridRef.current.contains(document.activeElement) || document.activeElement?.closest('[aria-haspopup="dialog"]'))) {
         switch (event.key) {
           case 'ArrowUp':
@@ -239,7 +235,7 @@ export const BobbinGridEditor: React.FC = () => {
           case 'p':
             if (event.ctrlKey || event.metaKey) {
               event.preventDefault();
-              togglePairingMode();
+              toggleLinkingMode();
             }
             break;
         }
@@ -248,7 +244,7 @@ export const BobbinGridEditor: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [focusedCell, rows, cols, levelData.bobbinArea.cells, cloneRow, deleteRow, togglePairingMode]);
+  }, [focusedCell, rows, cols, levelData.bobbinArea.cells, cloneRow, deleteRow, toggleLinkingMode]);
 
   useEffect(() => {
     if (focusedCell) {
@@ -265,14 +261,14 @@ export const BobbinGridEditor: React.FC = () => {
         <NumberSpinner id="bobbin-rows" label="Rows" value={rows} onChange={handleRowsChange} min={1} max={20} />
         <NumberSpinner id="bobbin-cols" label="Cols" value={cols} onChange={handleColsChange} min={1} max={20} />
         <Button 
-          variant={isPairingMode ? "secondary" : "outline"} 
-          onClick={togglePairingMode}
-          title={isPairingMode ? "Disable Pairing Mode (Ctrl+P)" : "Enable Pairing Mode (Ctrl+P)"}
+          variant={isLinkingMode ? "secondary" : "outline"} 
+          onClick={toggleLinkingMode}
+          title={isLinkingMode ? "Disable Linking Mode (Ctrl+P)" : "Enable Linking Mode (Ctrl+P)"}
           size="sm"
           className="self-end"
         >
-          {isPairingMode ? <Link2Off className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}
-          {isPairingMode ? "Pairing Active" : "Pair Bobbins"}
+          {isLinkingMode ? <Link2Off className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}
+          {isLinkingMode ? "Linking Active" : "Link Bobbins"}
         </Button>
       </div>
       <div ref={gridRef} className="overflow-auto">
@@ -318,10 +314,10 @@ export const BobbinGridEditor: React.FC = () => {
                   onCellChange={(newCell) => handleCellChange(rIdx, cIdx, newCell)}
                   rowIndex={rIdx}
                   colIndex={cIdx}
-                  isPairingMode={isPairingMode}
-                  onPairingClick={handlePairingClick}
-                  isSelectedForPairing={!!firstPairSelection && firstPairSelection.row === rIdx && firstPairSelection.col === cIdx}
-                  isActuallyPaired={isCellPaired(rIdx, cIdx)}
+                  isLinkingMode={isLinkingMode}
+                  onLinkClick={handleLinkClick}
+                  isSelectedForLinking={!!linkStartNode && linkStartNode.row === rIdx && linkStartNode.col === cIdx}
+                  isActuallyLinked={isCellLinked(rIdx, cIdx)}
                 />
               ))}
             </React.Fragment>
@@ -329,8 +325,8 @@ export const BobbinGridEditor: React.FC = () => {
         </div>
       </div>
       <div className="mt-2 text-xs text-muted-foreground">
-        Keyboard: Arrow keys to move focus. Ctrl+C to clone row, Ctrl+D to delete. Ctrl+P to toggle pairing mode.
-        {isPairingMode && " Pairing mode: Click a bobbin to select, click another to pair. Click a paired bobbin to unpair."}
+        Keyboard: Arrow keys to move focus. Ctrl+C to clone row, Ctrl+D to delete. Ctrl+P to toggle linking mode.
+        {isLinkingMode && " Linking mode: Click bobbins sequentially to form a chain. Click an empty cell or the last bobbin to stop. Click a linked bobbin to remove its links."}
       </div>
     </div>
   );

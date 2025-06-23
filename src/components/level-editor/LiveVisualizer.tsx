@@ -3,7 +3,7 @@
 import React from 'react';
 import { useLevelData } from '@/contexts/LevelDataContext';
 import type { BobbinCell, FabricBlockData, LevelData, BobbinColor, BobbinPair } from '@/lib/types';
-import { COLOR_MAP, LIMITED_FABRIC_COLORS, createFabricBlock, PAIRING_LINE_COLOR } from '@/lib/constants';
+import { COLOR_MAP, LIMITED_FABRIC_COLORS, createFabricBlock, LINKING_LINE_COLOR } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FabricBlockPopover } from './FabricBlockPopover';
@@ -147,7 +147,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           return <React.Fragment key={`bobbin-${rIdx}-${cIdx}`}>{cellElement}</React.Fragment>;
         })
       )}
-       {/* Pairing Lines */}
+       {/* Linking Lines */}
        {pairs.map((pair, pIdx) => {
         const fromX = pair.from.col * CELL_SIZE + CELL_SIZE / 2;
         const fromY = pair.from.row * CELL_SIZE + CELL_SIZE / 2;
@@ -160,7 +160,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             y1={fromY}
             x2={toX}
             y2={toY}
-            stroke={PAIRING_LINE_COLOR}
+            stroke={LINKING_LINE_COLOR}
             strokeWidth="2"
             strokeLinecap="round"
             className="pointer-events-none" 
