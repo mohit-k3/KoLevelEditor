@@ -11,7 +11,7 @@ import { ColorPicker } from '@/components/shared/ColorPicker';
 import { NumberSpinner } from '@/components/shared/NumberSpinner';
 import { cn } from '@/lib/utils';
 import { useLevelData } from '@/contexts/LevelDataContext';
-import { EyeOffIcon, SnowflakeIcon, LockIcon, KeyIcon } from 'lucide-react'; 
+import { EyeOffIcon, SnowflakeIcon, LockIcon, KeyIcon, KeySquare } from 'lucide-react'; 
 
 
 interface BobbinCellEditorProps {
@@ -27,6 +27,7 @@ interface BobbinCellEditorProps {
   onChainClick: (rowIndex: number, colIndex: number) => void;
   isActuallyInChain: boolean;
   isSelectedChain: boolean;
+  isChainAwaitingKeyLink?: boolean;
 }
 
 const cellTypeDisplay: Record<BobbinCell['type'], string> = {
@@ -51,7 +52,8 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   isChainingMode,
   onChainClick,
   isActuallyInChain,
-  isSelectedChain
+  isSelectedChain,
+  isChainAwaitingKeyLink
 }) => {
   const { setActiveEditorArea } = useLevelData();
 
@@ -76,7 +78,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
     onCellChange({ ...cell, color });
   };
   
-  const handleHasChange = (newHas: 'lock' | 'key' | 'none') => {
+  const handleHasChange = (newHas: 'lock' | 'key' | 'chain-key' | 'none') => {
     const newCell = {...cell};
     if (newHas === 'none') {
       delete newCell.has;
@@ -113,6 +115,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
 
     const accessory = cell.has === 'lock' ? <LockIcon className={accessoryIconClass} />
                     : cell.has === 'key' ? <KeyIcon className={accessoryIconClass} />
+                    : cell.has === 'chain-key' ? <KeySquare className={accessoryIconClass} />
                     : null;
 
     switch (cell.type) {
@@ -187,7 +190,8 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             isSelectedForLinking && "ring-2 ring-accent ring-offset-background shadow-lg",
             isActuallyLinked && !isSelectedForLinking && "border-primary/50 border-2",
             isActuallyInChain && !isSelectedChain && "border-accent/50 border-2",
-            isSelectedChain && "ring-2 ring-accent ring-offset-background shadow-lg"
+            isSelectedChain && "ring-2 ring-accent ring-offset-background shadow-lg",
+            isChainAwaitingKeyLink && "ring-2 ring-blue-500 ring-offset-background shadow-lg"
           )}
           aria-label={`Edit cell at row ${rowIndex + 1}, column ${colIndex + 1}. Current type: ${cellTypeDisplay[cell.type]}${isLinkingMode ? '. Linking mode active.' : ''}${isActuallyLinked ? ' Linked.' : ''}`}
           onClick={handleButtonClick}
@@ -218,13 +222,13 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             <Label className="text-sm font-medium">Accessory</Label>
              <RadioGroup
               value={cell.has || 'none'}
-              onValueChange={(value) => handleHasChange(value as 'lock' | 'key' | 'none')}
+              onValueChange={(value) => handleHasChange(value as 'lock' | 'key' | 'chain-key' | 'none')}
               className="mt-1 grid grid-cols-3 gap-2"
             >
-              {(['none', 'lock', 'key'] as const).map(item => (
+              {(['none', 'lock', 'key', 'chain-key'] as const).map(item => (
                 <div key={item} className="flex items-center space-x-2">
                   <RadioGroupItem value={item} id={`has-${item}-${rowIndex}-${colIndex}`} />
-                  <Label htmlFor={`has-${item}-${rowIndex}-${colIndex}`} className="text-sm capitalize">{item}</Label>
+                  <Label htmlFor={`has-${item}-${rowIndex}-${colIndex}`} className="text-sm capitalize">{item.replace('-', ' ')}</Label>
                 </div>
               ))}
             </RadioGroup>

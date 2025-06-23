@@ -37,13 +37,16 @@ export interface BobbinPair {
   to: BobbinPairCoordinate;
 }
 
-export type BobbinChain = BobbinPairCoordinate[];
+export interface BobbinChain {
+  path: BobbinPairCoordinate[];
+  keyLocation: BobbinPairCoordinate | null;
+}
 
 export interface BobbinCell {
   type: "bobbin" | "pipe" | "hidden" | "empty" | "ice";
   color?: BobbinColor; // For "bobbin", "hidden", "ice"
   colors?: BobbinColor[]; // For "pipe"
-  has?: 'lock' | 'key'; // Added for lock/key feature
+  has?: 'lock' | 'key' | 'chain-key';
 }
 
 export interface FabricBlockData {

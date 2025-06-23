@@ -3,11 +3,11 @@
 import React from 'react';
 import { useLevelData } from '@/contexts/LevelDataContext';
 import type { BobbinCell, FabricBlockData, LevelData, BobbinColor, BobbinPair } from '@/lib/types';
-import { COLOR_MAP, LIMITED_FABRIC_COLORS, createFabricBlock, LINKING_LINE_COLOR, CHAIN_LINE_COLOR } from '@/lib/constants';
+import { COLOR_MAP, LIMITED_FABRIC_COLORS, createFabricBlock, LINKING_LINE_COLOR, CHAIN_LINE_COLOR, CHAIN_KEY_LINK_COLOR } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FabricBlockPopover } from './FabricBlockPopover';
-import { SnowflakeIcon, LockIcon, KeyIcon } from 'lucide-react';
+import { SnowflakeIcon, LockIcon, KeyIcon, KeySquare } from 'lucide-react';
 
 
 interface LiveVisualizerProps {
@@ -54,6 +54,8 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
               ? <LockIcon x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
               : cell.has === 'key' 
               ? <KeyIcon x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />
+              : cell.has === 'chain-key'
+              ? <KeySquare x={x + CELL_SIZE - 12} y={y + 4} width="10" height="10" color="hsl(var(--foreground))" strokeWidth="3" />
               : null;
 
           if (cell.type === 'hidden' && cell.color) {
@@ -147,11 +149,11 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           return <React.Fragment key={`bobbin-${rIdx}-${cIdx}`}>{cellElement}</React.Fragment>;
         })
       )}
-       {/* Chain Lines */}
+       {/* Chain Path Lines */}
        {chains.map((chain, cIdx) => 
-        chain.map((coord, bIdx) => {
-          if (bIdx === chain.length - 1) return null; // No line from the last bobbin
-          const nextCoord = chain[bIdx+1];
+        chain.path.map((coord, bIdx) => {
+          if (bIdx === chain.path.length - 1) return null; // No line from the last bobbin
+          const nextCoord = chain.path[bIdx+1];
           const fromX = coord.col * CELL_SIZE + CELL_SIZE / 2;
           const fromY = coord.row * CELL_SIZE + CELL_SIZE / 2;
           const toX = nextCoord.col * CELL_SIZE + CELL_SIZE / 2;
@@ -172,6 +174,29 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
            );
         })
        )}
+       {/* Chain Key Link Lines */}
+       {chains.map((chain, cIdx) => {
+        if (!chain.keyLocation || chain.path.length === 0) return null;
+        const firstBobbinInPath = chain.path[0];
+        const fromX = firstBobbinInPath.col * CELL_SIZE + CELL_SIZE / 2;
+        const fromY = firstBobbinInPath.row * CELL_SIZE + CELL_SIZE / 2;
+        const toX = chain.keyLocation.col * CELL_SIZE + CELL_SIZE / 2;
+        const toY = chain.keyLocation.row * CELL_SIZE + CELL_SIZE / 2;
+         return (
+          <line
+            key={`chain-key-link-${cIdx}`}
+            x1={fromX}
+            y1={fromY}
+            x2={toX}
+            y2={toY}
+            stroke={CHAIN_KEY_LINK_COLOR}
+            strokeWidth="1.5"
+            strokeDasharray="5 3"
+            opacity="0.8"
+            className="pointer-events-none"
+          />
+        );
+      })}
        {/* Linking Lines */}
        {pairs.map((pair, pIdx) => {
         const fromX = pair.from.col * CELL_SIZE + CELL_SIZE / 2;

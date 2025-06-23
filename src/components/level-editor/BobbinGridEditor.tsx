@@ -7,7 +7,7 @@ import { BobbinCellEditor } from './BobbinCellEditor';
 import type { BobbinCell, BobbinPairCoordinate, BobbinChain } from '@/lib/types';
 import { createEmptyBobbinCell } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
-import { Copy, Trash2, Link2, Link2Off, LinkIcon } from 'lucide-react';
+import { Copy, Trash2, Link2, Link2Off, LinkIcon, KeyRound } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +41,7 @@ export const BobbinGridEditor: React.FC = () => {
   // Chaining state
   const [isChainingMode, setIsChainingMode] = useState(false);
   const [activeChainIndex, setActiveChainIndex] = useState<number | null>(null);
+  const [chainToLinkKey, setChainToLinkKey] = useState<number | null>(null);
 
 
   const handleRowsChange = (newRows: number) => {
@@ -57,9 +58,14 @@ export const BobbinGridEditor: React.FC = () => {
           draft.bobbinArea.pairs = draft.bobbinArea.pairs.filter(p => p.from.row < newRows && p.to.row < newRows);
         }
         if (draft.bobbinArea.chains) {
-            draft.bobbinArea.chains = draft.bobbinArea.chains.map(chain => 
-                chain.filter(coord => coord.row < newRows)
-            ).filter(chain => chain.length > 0);
+            draft.bobbinArea.chains = draft.bobbinArea.chains.map(chain => {
+                const newPath = chain.path.filter(coord => coord.row < newRows);
+                let newKeyLocation = chain.keyLocation;
+                if (newKeyLocation && newKeyLocation.row >= newRows) {
+                    newKeyLocation = null; // Invalidate key if it was in a removed row
+                }
+                return { path: newPath, keyLocation: newKeyLocation };
+            }).filter(chain => chain.path.length > 0);
         }
       }
       draft.bobbinArea.rows = newRows;
@@ -83,9 +89,14 @@ export const BobbinGridEditor: React.FC = () => {
         draft.bobbinArea.pairs = draft.bobbinArea.pairs.filter(p => p.from.col < newCols && p.to.col < newCols);
       }
       if (draft.bobbinArea.chains) {
-            draft.bobbinArea.chains = draft.bobbinArea.chains.map(chain => 
-                chain.filter(coord => coord.col < newCols)
-            ).filter(chain => chain.length > 0);
+          draft.bobbinArea.chains = draft.bobbinArea.chains.map(chain => {
+              const newPath = chain.path.filter(coord => coord.col < newCols);
+              let newKeyLocation = chain.keyLocation;
+              if (newKeyLocation && newKeyLocation.col >= newCols) {
+                  newKeyLocation = null;
+              }
+              return { path: newPath, keyLocation: newKeyLocation };
+          }).filter(chain => chain.path.length > 0);
         }
       draft.bobbinArea.cols = newCols;
     });
@@ -100,10 +111,21 @@ export const BobbinGridEditor: React.FC = () => {
             draft.bobbinArea.pairs = draft.bobbinArea.pairs.filter(p => !(p.from.row === rowIndex && p.from.col === colIndex) && !(p.to.row === rowIndex && p.to.col === colIndex));
         }
         if(draft.bobbinArea.chains) {
-            draft.bobbinArea.chains = draft.bobbinArea.chains.map(chain => 
-                chain.filter(coord => !(coord.row === rowIndex && coord.col === colIndex))
-            ).filter(chain => chain.length > 0);
+            draft.bobbinArea.chains = draft.bobbinArea.chains.map(chain => ({
+                ...chain,
+                path: chain.path.filter(coord => !(coord.row === rowIndex && coord.col === colIndex))
+            })).filter(chain => chain.path.length > 0);
         }
+      }
+      // If a cell is no longer a chain key, unlink it from any chains
+      if (newCell.has !== 'chain-key') {
+          if (draft.bobbinArea.chains) {
+              draft.bobbinArea.chains.forEach(chain => {
+                  if (chain.keyLocation?.row === rowIndex && chain.keyLocation?.col === colIndex) {
+                      chain.keyLocation = null;
+                  }
+              });
+          }
       }
     });
   };
@@ -123,9 +145,12 @@ export const BobbinGridEditor: React.FC = () => {
       }
        if (draft.bobbinArea.chains) {
          draft.bobbinArea.chains.forEach(chain => {
-            chain.forEach(coord => {
+            chain.path.forEach(coord => {
                 if (coord.row > rowIndex) coord.row++;
             });
+            if (chain.keyLocation && chain.keyLocation.row > rowIndex) {
+                chain.keyLocation.row++;
+            }
          });
       }
     });
@@ -148,10 +173,16 @@ export const BobbinGridEditor: React.FC = () => {
           })) || [];
       draft.bobbinArea.pairs = newPairs;
 
-      const newChains = draft.bobbinArea.chains?.map(chain => 
-            chain.filter(coord => coord.row !== rowIndex)
-                 .map(coord => ({ row: coord.row > rowIndex ? coord.row - 1 : coord.row, col: coord.col }))
-        ).filter(chain => chain.length > 0) || [];
+      const newChains = draft.bobbinArea.chains?.map(chain => {
+            const newPath = chain.path.filter(coord => coord.row !== rowIndex)
+                 .map(coord => ({ row: coord.row > rowIndex ? coord.row - 1 : coord.row, col: coord.col }));
+            let newKeyLocation = chain.keyLocation;
+            if (newKeyLocation) {
+                if (newKeyLocation.row === rowIndex) newKeyLocation = null;
+                else if (newKeyLocation.row > rowIndex) newKeyLocation.row--;
+            }
+            return { path: newPath, keyLocation: newKeyLocation };
+        }).filter(chain => chain.path.length > 0) || [];
       draft.bobbinArea.chains = newChains;
     });
     toast({ title: "Row Deleted", description: `Row ${rowIndex + 1} deleted successfully.` });
@@ -163,24 +194,27 @@ export const BobbinGridEditor: React.FC = () => {
     if (!isLinkingMode) {
       setIsChainingMode(false);
       setActiveChainIndex(null);
+      setChainToLinkKey(null);
     }
   };
   
   const toggleChainingMode = () => {
-    setIsChainingMode(prev => !prev);
+    const willBeOn = !isChainingMode;
+    setIsChainingMode(willBeOn);
     setActiveChainIndex(null);
-    if(!isChainingMode) {
+    setChainToLinkKey(null);
+    if(willBeOn) {
         setIsLinkingMode(false);
         setLinkStartNode(null);
     }
   }
 
   const isCellLinked = (r: number, c: number): boolean => pairs.some(p => (p.from.row === r && p.from.col === c) || (p.to.row === r && p.to.col === c));
-  const findChainIndexForCoord = (r:number, c:number): number => (chains || []).findIndex(chain => chain.some(coord => coord.row === r && coord.col === c));
+  const findChainIndexForCoord = (r:number, c:number): number => (chains || []).findIndex(chain => chain.path.some(coord => coord.row === r && coord.col === c));
   const isCellInChain = (r: number, c: number): boolean => findChainIndexForCoord(r, c) !== -1;
   const isCellInActiveChain = (r: number, c: number): boolean => {
     if (activeChainIndex === null) return false;
-    return chains[activeChainIndex]?.some(coord => coord.row === r && coord.col === c) || false;
+    return chains[activeChainIndex]?.path.some(coord => coord.row === r && coord.col === c) || false;
   };
 
   const handleLinkClick = (rIdx: number, cIdx: number) => {
@@ -241,6 +275,20 @@ export const BobbinGridEditor: React.FC = () => {
   const handleChainClick = (rIdx: number, cIdx: number) => {
     if (!isChainingMode) return;
 
+    if (chainToLinkKey !== null) {
+        const clickedCell = cells[rIdx]?.[cIdx];
+        if (clickedCell?.has !== 'chain-key') {
+            toast({ title: "Not a Chain Key", description: "You must select a bobbin with a 'chain-key' accessory.", variant: "destructive" });
+            return;
+        }
+        setLevelData(draft => {
+            draft.bobbinArea.chains![chainToLinkKey].keyLocation = { row: rIdx, col: cIdx };
+        });
+        toast({ title: "Chain Key Linked", description: `Linked chain to key at (${rIdx + 1}, ${cIdx + 1}).`});
+        setChainToLinkKey(null);
+        return;
+    }
+
     const clickedCell = cells[rIdx]?.[cIdx];
     if (!clickedCell || (clickedCell.type !== 'bobbin' && clickedCell.type !== 'hidden' && clickedCell.type !== 'ice')) {
         toast({ title: "Cannot Chain", description: "Only bobbins, hidden bobbins, or frozen bobbins can be chained.", variant: "destructive" });
@@ -256,31 +304,31 @@ export const BobbinGridEditor: React.FC = () => {
 
     if (chainIndexOfClicked !== -1) { // Clicked on an existing chain
       setActiveChainIndex(chainIndexOfClicked);
-      const chain = chains[chainIndexOfClicked];
-      const lastBobbinInChain = chain[chain.length - 1];
-      if (chain.length > 0 && lastBobbinInChain.row === rIdx && lastBobbinInChain.col === cIdx) {
+      const chainPath = chains[chainIndexOfClicked].path;
+      const lastBobbinInChain = chainPath[chainPath.length - 1];
+      if (chainPath.length > 0 && lastBobbinInChain.row === rIdx && lastBobbinInChain.col === cIdx) {
         // Clicked on the last bobbin, so remove it
         setLevelData(draft => {
-          const newChain = draft.bobbinArea.chains![chainIndexOfClicked].slice(0, -1);
-          if (newChain.length === 0) {
+          const newPath = draft.bobbinArea.chains![chainIndexOfClicked].path.slice(0, -1);
+          if (newPath.length === 0) {
             draft.bobbinArea.chains!.splice(chainIndexOfClicked, 1);
             setActiveChainIndex(null);
              toast({ title: "Chain Removed", description: `The chain has been removed.` });
           } else {
-            draft.bobbinArea.chains![chainIndexOfClicked] = newChain;
+            draft.bobbinArea.chains![chainIndexOfClicked].path = newPath;
             toast({ title: "Bobbin Unchained", description: `Removed bobbin from end of chain.` });
           }
         });
       } else {
-         toast({ title: "Chain Selected", description: `Selected chain ${chainIndexOfClicked + 1}. Click an adjacent bobbin to extend it.` });
+         toast({ title: "Chain Selected", description: `Selected chain ${chainIndexOfClicked + 1}. Click an adjacent bobbin to extend it or link a key.` });
       }
     } else { // Clicked on an unchained bobbin
         if (activeChainIndex !== null) { // Trying to extend a chain
-            const activeChain = chains[activeChainIndex];
-            const lastBobbin = activeChain[activeChain.length - 1];
+            const activeChainPath = chains[activeChainIndex].path;
+            const lastBobbin = activeChainPath[activeChainPath.length - 1];
             if (areCoordsAdjacent(lastBobbin, clickedCoord)) {
                 setLevelData(draft => {
-                    draft.bobbinArea.chains![activeChainIndex].push(clickedCoord);
+                    draft.bobbinArea.chains![activeChainIndex].path.push(clickedCoord);
                 });
                 toast({ title: "Bobbin Chained", description: `Added bobbin to chain ${activeChainIndex + 1}.` });
             } else {
@@ -289,7 +337,7 @@ export const BobbinGridEditor: React.FC = () => {
         } else { // Starting a new chain
              setLevelData(draft => {
                 if(!draft.bobbinArea.chains) draft.bobbinArea.chains = [];
-                const newChain: BobbinChain = [clickedCoord];
+                const newChain: BobbinChain = { path: [clickedCoord], keyLocation: null };
                 draft.bobbinArea.chains.push(newChain);
                 setActiveChainIndex(draft.bobbinArea.chains.length - 1);
              });
@@ -371,11 +419,18 @@ export const BobbinGridEditor: React.FC = () => {
     }
   }, [focusedCell]);
 
+  const handleStartLinkToKey = () => {
+      if (activeChainIndex === null) return;
+      setChainToLinkKey(activeChainIndex);
+      setActiveChainIndex(null);
+      toast({ title: "Assigning Key", description: "Click on a bobbin with a 'chain-key' to link it."});
+  };
+
 
   return (
     <div className="p-4 bg-card rounded-lg shadow">
       <h3 className="text-lg font-semibold mb-3 text-primary">Bobbin Grid Editor</h3>
-      <div className="flex gap-4 mb-4 items-end">
+      <div className="flex flex-wrap gap-2 mb-4 items-end">
         <NumberSpinner id="bobbin-rows" label="Rows" value={rows} onChange={handleRowsChange} min={1} max={20} />
         <NumberSpinner id="bobbin-cols" label="Cols" value={cols} onChange={handleColsChange} min={1} max={20} />
         <Button 
@@ -386,7 +441,7 @@ export const BobbinGridEditor: React.FC = () => {
           className="self-end"
         >
           {isLinkingMode ? <Link2Off className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}
-          {isLinkingMode ? "Pairing Active" : "Pair Bobbins"}
+          {isLinkingMode ? "Pairing" : "Pair"}
         </Button>
          <Button 
           variant={isChainingMode ? "secondary" : "outline"} 
@@ -396,8 +451,19 @@ export const BobbinGridEditor: React.FC = () => {
           className="self-end"
         >
           <LinkIcon className="mr-2 h-4 w-4" />
-          {isChainingMode ? "Chaining Active" : "Chain Bobbins"}
+          {isChainingMode ? "Chaining" : "Chain"}
         </Button>
+        {isChainingMode && activeChainIndex !== null && (
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={handleStartLinkToKey}
+                className="self-end border-blue-500 text-blue-600 hover:bg-blue-50"
+            >
+                <KeyRound className="mr-2 h-4 w-4" />
+                Link Key
+            </Button>
+        )}
       </div>
       <div ref={gridRef} className="overflow-auto">
         <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${cols + 1}, auto)` }}>
@@ -450,6 +516,7 @@ export const BobbinGridEditor: React.FC = () => {
                   onChainClick={handleChainClick}
                   isActuallyInChain={isCellInChain(rIdx, cIdx)}
                   isSelectedChain={isCellInActiveChain(rIdx, cIdx)}
+                  isChainAwaitingKeyLink={chainToLinkKey !== null && findChainIndexForCoord(rIdx,cIdx) === chainToLinkKey}
                 />
               ))}
             </React.Fragment>
@@ -458,8 +525,9 @@ export const BobbinGridEditor: React.FC = () => {
       </div>
       <div className="mt-2 text-xs text-muted-foreground">
         Keyboard: Arrow keys to move focus. Ctrl+C to clone row, Ctrl+D to delete. Ctrl+P to toggle pairing mode.
-        {isLinkingMode && " Pairing mode: Click a bobbin to start pairing. Click a second bobbin to create the pair. Click a paired bobbin to unpair it."}
-        {isChainingMode && " Chaining mode: Click a bobbin to start a new chain. Click an adjacent bobbin to extend it. Click the last bobbin in a chain to remove it."}
+        {isLinkingMode && " Pairing mode: Click a bobbin to start. Click a second bobbin to create the pair. Click a paired bobbin to unpair."}
+        {isChainingMode && chainToLinkKey === null && " Chaining mode: Click bobbin to start/select chain. Click adjacent bobbin to extend. Click last bobbin in chain to remove it."}
+        {isChainingMode && chainToLinkKey !== null && ` Linking Key for Chain ${chainToLinkKey+1}: Click a bobbin with a 'chain-key' accessory.`}
       </div>
     </div>
   );

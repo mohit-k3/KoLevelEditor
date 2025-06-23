@@ -5,6 +5,7 @@ import type {
   BobbinColor,
   Difficulty,
   BobbinPair,
+  BobbinChain,
 } from "./types";
 
 export const DEFAULT_LEVEL_NUMBER = 1;
@@ -142,14 +143,17 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         { type: "bobbin", color: "Blue" },
         { type: "bobbin", color: "Green" },
         { type: "bobbin", color: "Red" },
-        { type: "hidden", color: "Blue" },
+        { type: "hidden", color: "Blue", has: "chain-key" },
       ],
     ],
     pairs: [
       { from: { row: 0, col: 1 }, to: { row: 3, col: 4 } },
     ],
     chains: [
-      [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 1 }]
+      {
+        path: [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 1 }],
+        keyLocation: { row: 6, col: 6}
+      }
     ]
   },
   fabricArea: {
@@ -221,3 +225,4 @@ export const COLOR_MAP: Record<string, string> = {
 
 export const LINKING_LINE_COLOR = "hsl(var(--primary))"; 
 export const CHAIN_LINE_COLOR = "hsl(var(--accent))";
+export const CHAIN_KEY_LINK_COLOR = "hsl(var(--knitout-teal))";
