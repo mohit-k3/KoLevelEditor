@@ -173,15 +173,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
       )}
        {/* Chain Path Lines */}
        {chains.map((chain, cIdx) => {
-        const chainColor = (() => {
-          if (chain.keyLocation) {
-            const keyCell = cells[chain.keyLocation.row]?.[chain.keyLocation.col];
-            if (keyCell && keyCell.accessoryColor) {
-              return COLOR_MAP[keyCell.accessoryColor] || CHAIN_LINE_COLOR;
-            }
-          }
-          return CHAIN_LINE_COLOR;
-        })();
+        const chainColor = (chain.color && COLOR_MAP[chain.color]) || CHAIN_LINE_COLOR;
         
         return chain.path.map((coord, bIdx) => {
           if (bIdx === chain.path.length - 1) return null; // No line from the last bobbin
@@ -209,15 +201,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
        {/* Chain Key Link Lines */}
        {chains.map((chain, cIdx) => {
         if (!chain.keyLocation || chain.path.length === 0) return null;
-        const keyLinkColor = (() => {
-          if (chain.keyLocation) {
-            const keyCell = cells[chain.keyLocation.row]?.[chain.keyLocation.col];
-            if (keyCell && keyCell.accessoryColor) {
-              return COLOR_MAP[keyCell.accessoryColor] || CHAIN_KEY_LINK_COLOR;
-            }
-          }
-          return CHAIN_KEY_LINK_COLOR;
-        })();
+        const keyLinkColor = (chain.color && COLOR_MAP[chain.color]) || CHAIN_KEY_LINK_COLOR;
         const firstBobbinInPath = chain.path[0];
         const fromX = firstBobbinInPath.col * CELL_SIZE + CELL_SIZE / 2;
         const fromY = firstBobbinInPath.row * CELL_SIZE + CELL_SIZE / 2;
