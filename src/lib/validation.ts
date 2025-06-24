@@ -195,6 +195,12 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
                 return;
             }
 
+            const cell = data.bobbinArea.cells[coord.row]?.[coord.col];
+            if (!cell) {
+                messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Could not find cell data for coordinate ${coordLabel(coord)} in ${chainLabel}. The grid data is inconsistent.`});
+                return; 
+            }
+
             if (chainedCellCoordinates.has(coordKey)) {
                 messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Bobbin ${coordLabel(coord)} is part of multiple chains.`});
             }
@@ -203,7 +209,6 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
                 messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Bobbin ${coordLabel(coord)} cannot be in both a pair and a chain.`});
             }
 
-            const cell = data.bobbinArea.cells[coord.row][coord.col];
             if (cell.type !== 'bobbin') {
                  messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Bobbin ${coordLabel(coord)} in ${chainLabel} is of an un-chainable type "${cell.type}".`});
             }
