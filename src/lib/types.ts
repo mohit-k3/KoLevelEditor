@@ -25,7 +25,7 @@ export type BobbinColor =
   | "Red"
   | "LightRed";
 
-export type Difficulty = "Easy" | "Medium" | "Hard";
+export type Difficulty = "Easy" | "Medium" | "Hard" | "VeryHard";
 
 export interface BobbinPairCoordinate {
   row: number;
@@ -52,7 +52,7 @@ export interface BobbinCell {
   type: "bobbin" | "pipe" | "empty";
   color?: BobbinColor; // For "bobbin"
   colors?: BobbinColor[]; // For "pipe"
-  has?: 'lock' | 'key' | 'chain-key' | 'pin-head' | 'pin-tail';
+  has?: 'lock' | 'key' | 'chain-key';
   accessoryColor?: BobbinColor; // For "lock", "key", and "chain-key"
   hidden?: boolean; // For "bobbin"
   ice?: boolean; // For "bobbin"

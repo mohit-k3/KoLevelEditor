@@ -51,10 +51,6 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             return <KeyIcon {...commonProps} color={getAccessoryColor()} transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />;
         case 'chain-key':
             return <KeySquare {...commonProps} color={getAccessoryColor()} />;
-        case 'pin-head':
-            return <Pin {...commonProps} color={"hsl(var(--foreground))"} />;
-        case 'pin-tail':
-            return <Target {...commonProps} color={"hsl(var(--foreground))"} />;
         default: 
             return null;
     }
@@ -263,6 +259,27 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           />
         );
       })}
+      {/* Pin Icons */}
+      {pins.map((pin, pIdx) => (
+        <React.Fragment key={`pin-vis-${pIdx}`}>
+          <Pin 
+            x={pin.head.col * CELL_SIZE + 4} 
+            y={pin.head.row * CELL_SIZE + 4} 
+            width={CELL_SIZE - 8} 
+            height={CELL_SIZE - 8} 
+            color={"hsl(var(--pin-accent))"} 
+            className="pointer-events-none"
+          />
+          <Target 
+            x={pin.tail.col * CELL_SIZE + 4} 
+            y={pin.tail.row * CELL_SIZE + 4} 
+            width={CELL_SIZE - 8} 
+            height={CELL_SIZE - 8} 
+            color={"hsl(var(--pin-accent))"} 
+            className="pointer-events-none"
+          />
+        </React.Fragment>
+      ))}
     </svg>
   );
 };
