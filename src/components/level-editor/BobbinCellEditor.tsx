@@ -33,7 +33,6 @@ interface BobbinCellEditorProps {
   onPinClick: (rowIndex: number, colIndex: number) => void;
   isSelectedForPinning: boolean;
   isActuallyPinned: boolean;
-  pinPart: 'head' | 'tail' | null;
 }
 
 const cellTypeDisplay: Record<BobbinCell['type'], string> = {
@@ -62,7 +61,6 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   onPinClick,
   isSelectedForPinning,
   isActuallyPinned,
-  pinPart,
 }) => {
   const { setActiveEditorArea } = useLevelData();
 
@@ -91,7 +89,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
     onCellChange({ ...cell, color });
   };
   
-  const handleHasChange = (newHas: 'lock' | 'key' | 'chain-key' | 'none') => {
+  const handleHasChange = (newHas: 'lock' | 'key' | 'chain-key' | 'pin-head' | 'pin-tail' | 'none') => {
     const newCell: BobbinCell = {...cell};
     if (newHas === 'none') {
       delete newCell.has;
@@ -156,7 +154,6 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
 
   const getCellDisplay = () => {
     const iconClass = "w-4 h-4 text-white mix-blend-difference";
-    const accessoryIconClass = "absolute top-0.5 right-0.5 w-3 h-3 bg-white/50 rounded-full p-0.5";
 
     const accessory = (() => {
       if (!cell.has) return null;
@@ -167,6 +164,8 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
         }
         return 'black';
       };
+      
+      const accessoryIconClass = "absolute top-0.5 right-0.5 w-3 h-3 bg-white/50 rounded-full p-0.5";
     
       switch (cell.has) {
         case 'lock':
@@ -175,6 +174,10 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           return <KeyIcon className={accessoryIconClass} color={getAccessoryColor()} />;
         case 'chain-key':
           return <KeySquare className={accessoryIconClass} color={getAccessoryColor()} />;
+        case 'pin-head':
+          return <Pin className="absolute w-6 h-6 text-pin-accent pointer-events-none" style={{left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}} />
+        case 'pin-tail':
+          return <Target className="absolute w-6 h-6 text-pin-accent pointer-events-none" style={{left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}} />
         default:
           return null;
       }
@@ -251,8 +254,6 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           onClick={handleButtonClick}
         >
           {getCellDisplay()}
-          {pinPart === 'head' && <Pin className="absolute w-6 h-6 text-pin-accent pointer-events-none" style={{left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}} />}
-          {pinPart === 'tail' && <Target className="absolute w-6 h-6 text-pin-accent pointer-events-none" style={{left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}} />}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4 space-y-4">
@@ -304,7 +305,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
                 onValueChange={(value) => handleHasChange(value as any)}
                 className="mt-1 grid grid-cols-3 gap-2"
               >
-                {(['none', 'lock', 'key', 'chain-key'] as const).map(item => (
+                {(['none', 'lock', 'key', 'chain-key', 'pin-head', 'pin-tail'] as const).map(item => (
                   <div key={item} className="flex items-center space-x-2">
                     <RadioGroupItem value={item} id={`has-${item}-${rowIndex}-${colIndex}`} />
                     <Label htmlFor={`has-${item}-${rowIndex}-${colIndex}`} className="text-sm capitalize">{item.replace('-', ' ')}</Label>

@@ -43,6 +43,15 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
         height: "10",
         strokeWidth: "3",
     };
+    
+    const pinIconProps = {
+        x: x + 4,
+        y: y + 4,
+        width: CELL_SIZE - 8,
+        height: CELL_SIZE - 8,
+        color: "hsl(var(--pin-accent))",
+        className: "pointer-events-none"
+    };
 
     switch(cell.has) {
         case 'lock': 
@@ -51,6 +60,10 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             return <KeyIcon {...commonProps} color={getAccessoryColor()} transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />;
         case 'chain-key':
             return <KeySquare {...commonProps} color={getAccessoryColor()} />;
+        case 'pin-head':
+            return <Pin {...pinIconProps} />;
+        case 'pin-tail':
+            return <Target {...pinIconProps} />;
         default: 
             return null;
     }
@@ -79,8 +92,6 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           const y = rIdx * CELL_SIZE;
           
           let cellElement = <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" />;
-
-          const accessoryIcon = getAccessoryIcon(cell, x, y);
           
           if (cell.type === 'bobbin') {
             const bobbinColor = COLOR_MAP[cell.color || ''] || 'transparent';
@@ -136,11 +147,9 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                   />
                 )}
                 {cell.ice && iceIcon}
-                <g transform={`translate(${-x}, ${-y})`}>{accessoryIcon}</g>
               </g>
             );
           }
-
 
           if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 1) { 
             const numColors = cell.colors.length;
@@ -164,7 +173,14 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
              cellElement = <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" stroke="hsl(var(--destructive))" strokeWidth="1" />;
           }
           
-          return <React.Fragment key={`bobbin-${rIdx}-${cIdx}`}>{cellElement}</React.Fragment>;
+          const accessoryIcon = getAccessoryIcon(cell, x, y);
+          
+          return (
+            <React.Fragment key={`bobbin-frag-${rIdx}-${cIdx}`}>
+              {cellElement}
+              {accessoryIcon}
+            </React.Fragment>
+          );
         })
       )}
        {/* Chain Path Lines */}
@@ -259,27 +275,6 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           />
         );
       })}
-      {/* Pin Icons */}
-      {pins.map((pin, pIdx) => (
-        <React.Fragment key={`pin-vis-${pIdx}`}>
-          <Pin 
-            x={pin.head.col * CELL_SIZE + 4} 
-            y={pin.head.row * CELL_SIZE + 4} 
-            width={CELL_SIZE - 8} 
-            height={CELL_SIZE - 8} 
-            color={"hsl(var(--pin-accent))"} 
-            className="pointer-events-none"
-          />
-          <Target 
-            x={pin.tail.col * CELL_SIZE + 4} 
-            y={pin.tail.row * CELL_SIZE + 4} 
-            width={CELL_SIZE - 8} 
-            height={CELL_SIZE - 8} 
-            color={"hsl(var(--pin-accent))"} 
-            className="pointer-events-none"
-          />
-        </React.Fragment>
-      ))}
     </svg>
   );
 };
