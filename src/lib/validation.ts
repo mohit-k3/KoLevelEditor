@@ -45,12 +45,42 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
   const effectiveBobbinColorCounts = new Map<BobbinColor, number>();
   const allBobbinColorsPresent = new Set<BobbinColor>(); 
   const lockKeyColorCounts = new Map<BobbinColor, { locks: number; keys: number }>();
+  const occupiedByInteraction = new Set<string>(); // Stores "r,c" for any bobbin in a pair, chain, or pin
 
+  // --- Interaction Pre-computation ---
+  const pins = data.bobbinArea.pins ?? [];
+  pins.forEach(pin => {
+      occupiedByInteraction.add(`${pin.head.row},${pin.head.col}`);
+      occupiedByInteraction.add(`${pin.tail.row},${pin.tail.col}`);
+  });
+  const pairs = data.bobbinArea.pairs ?? [];
+  pairs.forEach(pair => {
+      occupiedByInteraction.add(`${pair.from.row},${pair.from.col}`);
+      occupiedByInteraction.add(`${pair.to.row},${pair.to.col}`);
+  });
+  const chains = data.bobbinArea.chains ?? [];
+  chains.forEach(chain => {
+      chain.path.forEach(coord => {
+          occupiedByInteraction.add(`${coord.row},${coord.col}`);
+      });
+  });
+
+  // Cell-by-cell validation
   data.bobbinArea.cells.forEach((row, rIdx) => {
     row.forEach((cell, cIdx) => {
       const cellPos = `(R${rIdx + 1}, C${cIdx + 1})`;
+      const coordKey = `${rIdx},${cIdx}`;
 
       if (cell.type === 'bobbin') {
+        const isPinParticipant = cell.has === 'pin-head' || cell.has === 'pin-tail';
+
+        if (cell.has && cell.has !== 'none' && !isPinParticipant) {
+             const isAlsoInOtherInteraction = occupiedByInteraction.has(coordKey);
+             if(isAlsoInOtherInteraction) {
+                 messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} is part of multiple interactions (e.g. pin and lock/key).` });
+             }
+        }
+
         if (cell.has === 'lock' || cell.has === 'key' || cell.has === 'chain-key') {
           if (!cell.accessoryColor) {
             messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} with a '${cell.has}' accessory is missing an accessory color.` });
@@ -67,10 +97,20 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
           }
         }
 
+        // Pin consistency validation
+        const isPinHeadInPinsArray = pins.some(p => isCoordEqual(p.head, {row: rIdx, col: cIdx}));
+        const isPinTailInPinsArray = pins.some(p => isCoordEqual(p.tail, {row: rIdx, col: cIdx}));
+
+        if (cell.has === 'pin-head' && !isPinHeadInPinsArray) {
+            messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Data Inconsistency: Bobbin at ${cellPos} has 'pin-head' accessory but is not defined as a pin head in the pins array.` });
+        }
+        if (cell.has === 'pin-tail' && !isPinTailInPinsArray) {
+            messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Data Inconsistency: Bobbin at ${cellPos} has 'pin-tail' accessory but is not defined as a pin tail in the pins array.` });
+        }
+
+
         if (!cell.color) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} of type "bobbin" is missing a color.` });
-        } else if (!AVAILABLE_COLORS.includes(cell.color)) {
-          // messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: Cell ${cellPos} has an undefined color "${cell.color}".` });
         }
         if (cell.color) {
           allBobbinColorsPresent.add(cell.color);
@@ -89,9 +129,6 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Pipe cell ${cellPos} cannot have more than 5 colors.` });
         }
         cell.colors?.forEach(pipeColor => {
-          if (!AVAILABLE_COLORS.includes(pipeColor)) {
-           // messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: Pipe cell ${cellPos} has an undefined color "${pipeColor}".` });
-          }
           if (pipeColor) {
             allBobbinColorsPresent.add(pipeColor);
             effectiveBobbinColorCounts.set(pipeColor, (effectiveBobbinColorCounts.get(pipeColor) || 0) + 1);
@@ -112,20 +149,11 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
     }
   });
 
-  // --- Interaction Validations (Pairs, Chains, Pins) ---
-  const occupiedByInteraction = new Set<string>(); // Stores "r,c" for any bobbin in a pair, chain, or pin
-
+  // --- Interaction Deep Validations ---
   // Bobbin Pair Validations
-  if (data.bobbinArea.pairs) {
-    data.bobbinArea.pairs.forEach((pair, pIdx) => {
+  pairs.forEach((pair, pIdx) => {
       const pairLabel = `Pair ${pIdx + 1} [${coordLabel(pair.from)} to ${coordLabel(pair.to)}]`;
       [pair.from, pair.to].forEach(coord => {
-        const coordKey = `${coord.row},${coord.col}`;
-        if (occupiedByInteraction.has(coordKey)) {
-            messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin at ${coordLabel(coord)} is part of multiple interactions (e.g., pairs, chains, pins).`});
-        }
-        occupiedByInteraction.add(coordKey);
-
         const cell = data.bobbinArea.cells[coord.row]?.[coord.col];
         if (cell?.type !== 'bobbin') { 
             messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pairLabel} involves a non-bobbin cell ${coordLabel(coord)}.`});
@@ -134,104 +162,61 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
       if (isCoordEqual(pair.from, pair.to)) {
         messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${pairLabel} connects a bobbin to itself.`});
       }
-    });
-  }
+  });
 
   // Bobbin Chain Validations
   const usedChainKeyLocations = new Set<string>();
-  if (data.bobbinArea.chains) {
-    data.bobbinArea.chains.forEach((chain, cIdx) => {
-        const chainLabel = `Chain ${cIdx + 1}`;
-        if(!chain.path || chain.path.length < 1) {
-            messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: ${chainLabel} is empty.`});
-            return;
-        }
+  chains.forEach((chain, cIdx) => {
+      const chainLabel = `Chain ${cIdx + 1}`;
+      if(!chain.path || chain.path.length < 1) {
+          messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: ${chainLabel} is empty.`});
+          return;
+      }
 
-        if (!chain.keyLocation || !chain.color) {
-            messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${chainLabel} is missing a linked key or key color.`});
-        } else {
-            const keyLoc = chain.keyLocation;
-            const keyLocString = `${keyLoc.row},${keyLoc.col}`;
-            const keyCell = data.bobbinArea.cells[keyLoc.row]?.[keyLoc.col];
-            if (!keyCell || keyCell.type !== 'bobbin' || keyCell.has !== 'chain-key') {
-                 messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin at ${coordLabel(keyLoc)} assigned to ${chainLabel} is not a 'chain-key' type bobbin.`});
-            } else if (keyCell.accessoryColor !== chain.color) {
-                 messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${chainLabel}'s stored color ("${chain.color}") does not match its key's color ("${keyCell.accessoryColor}") at ${coordLabel(keyLoc)}.`});
-            }
-            if (usedChainKeyLocations.has(keyLocString)) {
-                messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Chain key at ${coordLabel(keyLoc)} is linked to multiple chains.`});
-            }
-            usedChainKeyLocations.add(keyLocString);
-        }
+      if (!chain.keyLocation || !chain.color) {
+          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${chainLabel} is missing a linked key or key color.`});
+      } else {
+          const keyLoc = chain.keyLocation;
+          const keyLocString = `${keyLoc.row},${keyLoc.col}`;
+          const keyCell = data.bobbinArea.cells[keyLoc.row]?.[keyLoc.col];
+          if (!keyCell || keyCell.type !== 'bobbin' || keyCell.has !== 'chain-key') {
+                messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin at ${coordLabel(keyLoc)} assigned to ${chainLabel} is not a 'chain-key' type bobbin.`});
+          } else if (keyCell.accessoryColor !== chain.color) {
+                messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${chainLabel}'s stored color ("${chain.color}") does not match its key's color ("${keyCell.accessoryColor}") at ${coordLabel(keyLoc)}.`});
+          }
+          if (usedChainKeyLocations.has(keyLocString)) {
+              messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Chain key at ${coordLabel(keyLoc)} is linked to multiple chains.`});
+          }
+          usedChainKeyLocations.add(keyLocString);
+      }
 
-        chain.path.forEach((coord, bIdx) => {
-            const coordKey = `${coord.row},${coord.col}`;
-            if (occupiedByInteraction.has(coordKey)) {
-              messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin at ${coordLabel(coord)} is part of multiple interactions.`});
-            }
-            occupiedByInteraction.add(coordKey);
+      chain.path.forEach((coord, bIdx) => {
+          const cell = data.bobbinArea.cells[coord.row]?.[coord.col];
+          if (!cell || cell.type !== 'bobbin') {
+                messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin ${coordLabel(coord)} in ${chainLabel} is not a valid bobbin.`});
+          }
 
-            const cell = data.bobbinArea.cells[coord.row]?.[coord.col];
-            if (!cell || cell.type !== 'bobbin') {
-                 messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin ${coordLabel(coord)} in ${chainLabel} is not a valid bobbin.`});
-            }
-
-            if (bIdx < chain.path.length - 1) {
-                const nextCoord = chain.path[bIdx + 1];
-                if (!areCoordsAdjacent(coord, nextCoord)) {
-                    messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${chainLabel} has non-adjacent bobbins between ${coordLabel(coord)} and ${coordLabel(nextCoord)}.`});
-                }
-            }
-        });
-    });
-  }
-
-  // Bobbin Pin validations
-  const pinHeads: BobbinPairCoordinate[] = [];
-  const pinTails: BobbinPairCoordinate[] = [];
-  data.bobbinArea.cells.forEach((row, rIdx) => {
-    row.forEach((cell, cIdx) => {
-        if (cell.type === 'bobbin' && cell.has === 'pin-head') {
-            pinHeads.push({ row: rIdx, col: cIdx });
-        }
-        if (cell.type === 'bobbin' && cell.has === 'pin-tail') {
-            pinTails.push({ row: rIdx, col: cIdx });
-        }
-    });
+          if (bIdx < chain.path.length - 1) {
+              const nextCoord = chain.path[bIdx + 1];
+              if (!areCoordsAdjacent(coord, nextCoord)) {
+                  messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${chainLabel} has non-adjacent bobbins between ${coordLabel(coord)} and ${coordLabel(nextCoord)}.`});
+              }
+          }
+      });
   });
 
-  if (pinHeads.length !== pinTails.length) {
-    messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Pin Mismatch: Found ${pinHeads.length} pin heads but ${pinTails.length} pin tails. Counts must be equal.`});
-  }
-
-  const definedPins = data.bobbinArea.pins ?? [];
-  if (pinHeads.length !== definedPins.length) {
-    messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Pin count mismatch: Found ${pinHeads.length} pin-head accessories, but ${definedPins.length} defined pin connections.`});
-  }
-
-  definedPins.forEach((pin, pIdx) => {
+  // Bobbin Pin validations
+  pins.forEach((pin, pIdx) => {
       const pinLabel = `Pin ${pIdx + 1} [${coordLabel(pin.head)} to ${coordLabel(pin.tail)}]`;
       const headCell = data.bobbinArea.cells[pin.head.row]?.[pin.head.col];
       const tailCell = data.bobbinArea.cells[pin.tail.row]?.[pin.tail.col];
 
-      if (headCell?.has !== 'pin-head' || headCell?.type !== 'bobbin') {
-          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `${pinLabel}: Defined head at ${coordLabel(pin.head)} is not a 'pin-head' bobbin.`});
+      if (headCell?.type === 'bobbin' && headCell.has !== 'pin-head') {
+        messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Data Inconsistency: ${pinLabel}: Bobbin at head location ${coordLabel(pin.head)} is missing 'pin-head' accessory.`});
       }
-      if (tailCell?.has !== 'pin-tail' || tailCell?.type !== 'bobbin') {
-          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `${pinLabel}: Defined tail at ${coordLabel(pin.tail)} is not a 'pin-tail' bobbin.`});
+      if (tailCell?.type === 'bobbin' && tailCell.has !== 'pin-tail') {
+        messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Data Inconsistency: ${pinLabel}: Bobbin at tail location ${coordLabel(pin.tail)} is missing 'pin-tail' accessory.`});
       }
-      
-      const headKey = `${pin.head.row},${pin.head.col}`;
-      if (occupiedByInteraction.has(headKey)) {
-        messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin at ${coordLabel(pin.head)} is part of multiple interactions.`});
-      }
-      occupiedByInteraction.add(headKey);
-      
-      const tailKey = `${pin.tail.row},${pin.tail.col}`;
-      if (occupiedByInteraction.has(tailKey)) {
-        messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin at ${coordLabel(pin.tail)} is part of multiple interactions.`});
-      }
-      occupiedByInteraction.add(tailKey);
   });
 
 
@@ -248,8 +233,6 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
     column.forEach((block: FabricBlockData, bIdx) => { 
       if (!block.color) {
         messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Fabric Area: Block at (Col ${cIdx + 1}, Stack pos ${bIdx + 1}) is missing a color.` });
-      } else if (!LIMITED_FABRIC_COLORS.includes(block.color)) {
-       // messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Fabric Area: Block at (Col ${cIdx + 1}, Stack pos ${bIdx + 1}) has an undefined color "${block.color}".` });
       }
       if (block.color) { 
         totalFabricColorCounts.set(block.color, (totalFabricColorCounts.get(block.color) || 0) + 1);

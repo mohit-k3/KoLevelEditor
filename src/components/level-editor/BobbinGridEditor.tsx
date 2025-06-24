@@ -27,6 +27,10 @@ const areCoordsAdjacent = (c1: BobbinPairCoordinate, c2: BobbinPairCoordinate): 
     return rowDiff + colDiff === 1;
 };
 
+const isCoordEqual = (c1: BobbinPairCoordinate, c2: BobbinPairCoordinate): boolean => {
+  return c1.row === c2.row && c1.col === c2.col;
+}
+
 export const BobbinGridEditor: React.FC = () => {
   const { levelData, setLevelData } = useLevelData();
   const { rows, cols, cells, pairs = [], chains = [], pins = [] } = levelData.bobbinArea;
@@ -115,17 +119,27 @@ export const BobbinGridEditor: React.FC = () => {
 
   const handleCellChange = (rowIndex: number, colIndex: number, newCell: BobbinCell) => {
     setLevelData(draft => {
-      const oldCell = draft.bobbinArea.cells[rowIndex][colIndex];
-      draft.bobbinArea.cells[rowIndex][colIndex] = newCell;
+      const finalCell = { ...newCell };
+      const currentPins = draft.bobbinArea.pins || [];
+      const coord = { row: rowIndex, col: colIndex };
 
-      if (newCell.type === 'empty' || (oldCell.has?.startsWith('pin-') && !newCell.has?.startsWith('pin-'))) {
-        // If cell becomes empty, or is no longer a pin, remove it from any pin connections
-        if (draft.bobbinArea.pins) {
-          draft.bobbinArea.pins = draft.bobbinArea.pins.filter(p => !(p.head.row === rowIndex && p.head.col === colIndex) && !(p.tail.row === rowIndex && p.tail.col === colIndex));
+      const isPinHead = currentPins.some(p => isCoordEqual(p.head, coord));
+      const isPinTail = currentPins.some(p => isCoordEqual(p.tail, coord));
+      
+      if (finalCell.type === 'bobbin') {
+        if (isPinHead) {
+          finalCell.has = 'pin-head';
+          delete finalCell.accessoryColor;
+        } else if (isPinTail) {
+          finalCell.has = 'pin-tail';
+          delete finalCell.accessoryColor;
         }
       }
 
-      if (newCell.type === 'empty') {
+      const oldCell = draft.bobbinArea.cells[rowIndex][colIndex];
+      draft.bobbinArea.cells[rowIndex][colIndex] = finalCell;
+
+      if (finalCell.type === 'empty') {
         // If cell becomes empty, remove any pairs or chain links involving it
         if (draft.bobbinArea.pairs) {
             draft.bobbinArea.pairs = draft.bobbinArea.pairs.filter(p => !(p.from.row === rowIndex && p.from.col === colIndex) && !(p.to.row === rowIndex && p.to.col === colIndex));
@@ -133,7 +147,7 @@ export const BobbinGridEditor: React.FC = () => {
         if(draft.bobbinArea.chains) {
             draft.bobbinArea.chains = draft.bobbinArea.chains.map(chain => ({
                 ...chain,
-                path: chain.path.filter(coord => !(coord.row === rowIndex && coord.col === colIndex))
+                path: chain.path.filter(c => !(c.row === rowIndex && c.col === colIndex))
             })).filter(chain => chain.path.length > 0);
         }
       }
@@ -142,13 +156,13 @@ export const BobbinGridEditor: React.FC = () => {
       if (oldCell.has === 'chain-key') {
         draft.bobbinArea.chains?.forEach(chain => {
           if (chain.keyLocation?.row === rowIndex && chain.keyLocation?.col === colIndex) {
-            if (newCell.has !== 'chain-key') {
+            if (finalCell.has !== 'chain-key') {
               // The key was removed
               chain.keyLocation = null;
               delete chain.color;
-            } else if (newCell.accessoryColor !== oldCell.accessoryColor) {
+            } else if (finalCell.accessoryColor !== oldCell.accessoryColor) {
               // The key's color changed
-              chain.color = newCell.accessoryColor;
+              chain.color = finalCell.accessoryColor;
             }
           }
         });
@@ -277,7 +291,8 @@ export const BobbinGridEditor: React.FC = () => {
     if (activeChainIndex === null) return false;
     return chains[activeChainIndex]?.path.some(coord => coord.row === r && coord.col === c) || false;
   };
-  const isCellPinned = (r: number, c: number): boolean => pins.some(p => (p.head.row === r && p.head.col === c) || (p.tail.row === r && p.tail.col === c));
+  const isCellPinHead = (r: number, c: number): boolean => pins.some(p => p.head.row === r && p.head.col === c);
+  const isCellPinTail = (r: number, c: number): boolean => pins.some(p => p.tail.row === r && p.tail.col === c);
 
 
   const handleLinkClick = (rIdx: number, cIdx: number) => {
@@ -289,7 +304,7 @@ export const BobbinGridEditor: React.FC = () => {
       return;
     }
     
-    if(isCellInChain(rIdx, cIdx) || isCellPinned(rIdx, cIdx)) {
+    if(isCellInChain(rIdx, cIdx) || isCellPinHead(rIdx, cIdx) || isCellPinTail(rIdx, cIdx)) {
         toast({ title: "Cannot Pair", description: "This bobbin is already part of a chain or pin.", variant: "destructive" });
         return;
     }
@@ -363,7 +378,7 @@ export const BobbinGridEditor: React.FC = () => {
         toast({ title: "Cannot Chain", description: "Only bobbins can be chained.", variant: "destructive" });
         return;
     }
-     if (isCellLinked(rIdx, cIdx) || isCellPinned(rIdx, cIdx)) {
+     if (isCellLinked(rIdx, cIdx) || isCellPinHead(rIdx, cIdx) || isCellPinTail(rIdx, cIdx)) {
         toast({ title: "Cannot Chain", description: "This bobbin is already part of a pair or pin.", variant: "destructive" });
         return;
     }
@@ -419,39 +434,31 @@ export const BobbinGridEditor: React.FC = () => {
   const handlePinClick = (rIdx: number, cIdx: number) => {
     if (!isPinningMode) return;
     const clickedCoord = { row: rIdx, col: cIdx };
-    const clickedCell = cells[rIdx]?.[cIdx];
 
-    if (!clickedCell || clickedCell.type !== 'bobbin' || !clickedCell.has?.startsWith('pin-')) {
-        toast({ title: "Cannot Pin", description: "Pinning mode requires clicking bobbins with 'pin-head' or 'pin-tail' accessories.", variant: "destructive" });
-        return;
-    }
-    
-    // Prevent pinning a cell that's already in a pair or chain
-    if (isCellLinked(rIdx, cIdx) || isCellInChain(rIdx, cIdx)) {
-        toast({ title: "Cannot Pin", description: "This bobbin is already part of a pair or chain.", variant: "destructive" });
-        return;
-    }
-
-    const existingPinIndex = pins.findIndex(p => 
-        (p.head.row === rIdx && p.head.col === cIdx) || 
-        (p.tail.row === rIdx && p.tail.col === cIdx)
-    );
+    const existingPinIndex = pins.findIndex(p => isCoordEqual(p.head, clickedCoord) || isCoordEqual(p.tail, clickedCoord));
 
     if (existingPinIndex !== -1) {
-        setLevelData(draft => { draft.bobbinArea.pins?.splice(existingPinIndex, 1); });
-        toast({ title: "Pin Removed", description: `Pin involving bobbin at (${rIdx + 1}, ${cIdx + 1}) removed.` });
-        if (pinStartNode && pinStartNode.row === rIdx && pinStartNode.col === cIdx) {
+        setLevelData(draft => {
+            const removedPin = draft.bobbinArea.pins!.splice(existingPinIndex, 1)[0];
+            const headCell = draft.bobbinArea.cells[removedPin.head.row][removedPin.head.col];
+            if (headCell.type === 'bobbin' && headCell.has === 'pin-head') delete headCell.has;
+            const tailCell = draft.bobbinArea.cells[removedPin.tail.row][removedPin.tail.col];
+            if (tailCell.type === 'bobbin' && tailCell.has === 'pin-tail') delete tailCell.has;
+        });
+        toast({ title: "Pin Removed" });
+        if (pinStartNode && isCoordEqual(pinStartNode, clickedCoord)) {
             setPinStartNode(null);
         }
         return;
     }
     
-    if (pinStartNode) { // This is the second click (placing the tail)
-      if (clickedCell.has !== 'pin-tail') {
-          toast({ title: "Invalid Pin Target", description: "Please click on a 'pin-tail' bobbin to complete the pin.", variant: "destructive" });
-          return;
-      }
-      if (pinStartNode.row === rIdx && pinStartNode.col === cIdx) {
+    if (isCellLinked(rIdx, cIdx) || isCellInChain(rIdx, cIdx)) {
+        toast({ title: "Cannot Pin", description: "This location is part of a pair or chain.", variant: "destructive" });
+        return;
+    }
+
+    if (pinStartNode) {
+      if (isCoordEqual(pinStartNode, clickedCoord)) {
         setPinStartNode(null);
         return;
       }
@@ -459,14 +466,16 @@ export const BobbinGridEditor: React.FC = () => {
       setLevelData(draft => {
         if (!draft.bobbinArea.pins) draft.bobbinArea.pins = [];
         draft.bobbinArea.pins.push(newPin);
+        
+        const headCell = draft.bobbinArea.cells[newPin.head.row][newPin.head.col];
+        if (headCell.type === 'bobbin') headCell.has = 'pin-head';
+        
+        const tailCell = draft.bobbinArea.cells[newPin.tail.row][newPin.tail.col];
+        if (tailCell.type === 'bobbin') tailCell.has = 'pin-tail';
       });
       toast({ title: "Pin Created", description: `Pinned head at (${pinStartNode.row + 1}, ${pinStartNode.col + 1}) to tail at (${rIdx + 1}, ${cIdx + 1}).` });
       setPinStartNode(null);
-    } else { // This is the first click (placing the head)
-      if (clickedCell.has !== 'pin-head') {
-          toast({ title: "Invalid Pin Start", description: "Please start by clicking on a 'pin-head' bobbin.", variant: "destructive" });
-          return;
-      }
+    } else {
       setPinStartNode(clickedCoord);
     }
   };
@@ -654,7 +663,8 @@ export const BobbinGridEditor: React.FC = () => {
                   isPinningMode={isPinningMode}
                   onPinClick={handlePinClick}
                   isSelectedForPinning={!!pinStartNode && pinStartNode.row === rIdx && pinStartNode.col === cIdx}
-                  isActuallyPinned={isCellPinned(rIdx, cIdx)}
+                  isPinHead={isCellPinHead(rIdx, cIdx)}
+                  isPinTail={isCellPinTail(rIdx, cIdx)}
                 />
               ))}
             </React.Fragment>
@@ -666,7 +676,7 @@ export const BobbinGridEditor: React.FC = () => {
         {isLinkingMode && " Pairing mode: Click a bobbin to start. Click a second bobbin to create the pair. Click a paired bobbin to unpair."}
         {isChainingMode && chainToLinkKey === null && " Chaining mode: Click bobbin to start/select chain. Click adjacent bobbin to extend. Click last bobbin in chain to remove it."}
         {isChainingMode && chainToLinkKey !== null && ` Linking Key for Chain ${chainToLinkKey+1}: Click a bobbin with a 'chain-key' accessory.`}
-        {isPinningMode && " Pinning mode: Click a 'pin-head' bobbin to start. Click a 'pin-tail' bobbin to create the pin. Click a pinned bobbin to unpin."}
+        {isPinningMode && " Pinning mode: Click any grid cell to start. Click a second cell to create the pin. Click a pinned cell to unpin."}
       </div>
     </div>
   );
