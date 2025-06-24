@@ -31,8 +31,9 @@ interface BobbinCellEditorProps {
   isChainAwaitingKeyLink?: boolean;
   isPinningMode: boolean;
   onPinClick: (rowIndex: number, colIndex: number) => void;
+  isPinHead: boolean;
+  isPinTail: boolean;
   isSelectedForPinning: boolean;
-  isActuallyPinned: boolean;
 }
 
 const cellTypeDisplay: Record<BobbinCell['type'], string> = {
@@ -59,8 +60,9 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   isChainAwaitingKeyLink,
   isPinningMode,
   onPinClick,
+  isPinHead,
+  isPinTail,
   isSelectedForPinning,
-  isActuallyPinned,
 }) => {
   const { setActiveEditorArea } = useLevelData();
 
@@ -89,7 +91,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
     onCellChange({ ...cell, color });
   };
   
-  const handleHasChange = (newHas: 'lock' | 'key' | 'chain-key' | 'pin-head' | 'pin-tail' | 'none') => {
+  const handleHasChange = (newHas: 'lock' | 'key' | 'chain-key' | 'none') => {
     const newCell: BobbinCell = {...cell};
     if (newHas === 'none') {
       delete newCell.has;
@@ -154,7 +156,6 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
 
   const getCellDisplay = () => {
     const iconClass = "w-4 h-4 text-white mix-blend-difference";
-    const accessoryIconClass = "absolute top-0.5 right-0.5 w-3 h-3 bg-white/50 rounded-full p-0.5";
 
     const accessory = (() => {
       if (!cell.has) return null;
@@ -165,6 +166,8 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
         }
         return 'black';
       };
+      
+      const accessoryIconClass = "absolute top-0.5 right-0.5 w-3 h-3 bg-white/50 rounded-full p-0.5";
     
       switch (cell.has) {
         case 'lock':
@@ -173,10 +176,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           return <KeyIcon className={accessoryIconClass} color={getAccessoryColor()} />;
         case 'chain-key':
           return <KeySquare className={accessoryIconClass} color={getAccessoryColor()} />;
-        case 'pin-head':
-          return <Pin className={accessoryIconClass} />;
-        case 'pin-tail':
-          return <Target className={accessoryIconClass} />;
+        // Pin icons are now rendered directly on the grid in the visualizer and editor grid
         default:
           return null;
       }
@@ -232,6 +232,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   };
   
   const isBobbinType = cell.type === 'bobbin';
+  const isPinned = isPinHead || isPinTail;
 
   return (
     <Popover>
@@ -247,12 +248,14 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             isSelectedChain && "ring-2 ring-accent ring-offset-background shadow-lg",
             isChainAwaitingKeyLink && "ring-2 ring-blue-500 ring-offset-background shadow-lg",
             isSelectedForPinning && "ring-2 ring-pin-accent ring-offset-background shadow-lg",
-            isActuallyPinned && !isSelectedForPinning && "border-pin-accent/50 border-2",
+            isPinned && !isSelectedForPinning && "border-pin-accent/50 border-2",
           )}
           aria-label={`Edit cell at row ${rowIndex + 1}, column ${colIndex + 1}. Current type: ${cellTypeDisplay[cell.type]}`}
           onClick={handleButtonClick}
         >
           {getCellDisplay()}
+          {isPinHead && <Pin className="absolute w-6 h-6 text-pin-accent pointer-events-none" style={{left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}} />}
+          {isPinTail && <Target className="absolute w-6 h-6 text-pin-accent pointer-events-none" style={{left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}} />}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4 space-y-4">
@@ -299,21 +302,31 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
 
             <div>
               <Label className="text-sm font-medium">Accessory</Label>
-              <RadioGroup
-                value={cell.has || 'none'}
-                onValueChange={(value) => handleHasChange(value as any)}
-                className="mt-1 grid grid-cols-3 gap-2"
-              >
-                {(['none', 'lock', 'key', 'chain-key', 'pin-head', 'pin-tail'] as const).map(item => (
-                  <div key={item} className="flex items-center space-x-2">
-                    <RadioGroupItem value={item} id={`has-${item}-${rowIndex}-${colIndex}`} />
-                    <Label htmlFor={`has-${item}-${rowIndex}-${colIndex}`} className="text-sm capitalize">{item.replace('-', ' ')}</Label>
-                  </div>
-                ))}
-              </RadioGroup>
+               {isPinned ? (
+                <p className="text-sm text-muted-foreground mt-1">
+                  This bobbin is a {' '}
+                  <span className="font-semibold text-pin-accent">
+                    {isPinHead ? 'Pin Head' : 'Pin Tail'}
+                  </span>
+                  . Remove the pin from the grid to add other accessories.
+                </p>
+              ) : (
+                <RadioGroup
+                  value={cell.has || 'none'}
+                  onValueChange={(value) => handleHasChange(value as any)}
+                  className="mt-1 grid grid-cols-3 gap-2"
+                >
+                  {(['none', 'lock', 'key', 'chain-key'] as const).map(item => (
+                    <div key={item} className="flex items-center space-x-2">
+                      <RadioGroupItem value={item} id={`has-${item}-${rowIndex}-${colIndex}`} />
+                      <Label htmlFor={`has-${item}-${rowIndex}-${colIndex}`} className="text-sm capitalize">{item.replace('-', ' ')}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              )}
             </div>
             
-            {(cell.has === 'lock' || cell.has === 'key' || cell.has === 'chain-key') && (
+            {(cell.has === 'lock' || cell.has === 'key' || cell.has === 'chain-key') && !isPinned && (
               <div>
                 <Label htmlFor={`accessory-color-${rowIndex}-${colIndex}`} className="text-sm font-medium">
                   Accessory Color

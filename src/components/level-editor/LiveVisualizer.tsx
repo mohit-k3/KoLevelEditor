@@ -27,7 +27,7 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
   const height = rows * CELL_SIZE;
 
   const getAccessoryIcon = (cell: BobbinCell, x: number, y: number) => {
-    if (!cell.has) return null;
+    if (!cell.has || cell.has.startsWith('pin-')) return null;
 
     const getAccessoryColor = () => {
         if ((cell.has === 'lock' || cell.has === 'key' || cell.has === 'chain-key') && cell.accessoryColor) {
@@ -51,10 +51,6 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             return <KeyIcon {...commonProps} color={getAccessoryColor()} transform={`rotate(-45 ${x + CELL_SIZE - 7} ${y + 9})`} />;
         case 'chain-key':
             return <KeySquare {...commonProps} color={getAccessoryColor()} />;
-        case 'pin-head':
-            return <Pin {...commonProps} color={"hsl(var(--foreground))"} />;
-        case 'pin-tail':
-            return <Target {...commonProps} color={"hsl(var(--foreground))"} />;
         default: 
             return null;
     }
@@ -83,8 +79,6 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           const y = rIdx * CELL_SIZE;
           
           let cellElement = <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" />;
-
-          const accessoryIcon = getAccessoryIcon(cell, x, y);
           
           if (cell.type === 'bobbin') {
             const bobbinColor = COLOR_MAP[cell.color || ''] || 'transparent';
@@ -140,11 +134,9 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                   />
                 )}
                 {cell.ice && iceIcon}
-                <g transform={`translate(${-x}, ${-y})`}>{accessoryIcon}</g>
               </g>
             );
           }
-
 
           if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 1) { 
             const numColors = cell.colors.length;
@@ -168,7 +160,14 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
              cellElement = <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" stroke="hsl(var(--destructive))" strokeWidth="1" />;
           }
           
-          return <React.Fragment key={`bobbin-${rIdx}-${cIdx}`}>{cellElement}</React.Fragment>;
+          const accessoryIcon = getAccessoryIcon(cell, x, y);
+          
+          return (
+            <React.Fragment key={`bobbin-frag-${rIdx}-${cIdx}`}>
+              {cellElement}
+              {accessoryIcon}
+            </React.Fragment>
+          );
         })
       )}
        {/* Chain Path Lines */}
@@ -222,24 +221,41 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           />
         );
       })}
-      {/* Pin Lines */}
+      {/* Pin Lines and Icons */}
        {pins.map((pin, pIdx) => {
         const fromX = pin.head.col * CELL_SIZE + CELL_SIZE / 2;
         const fromY = pin.head.row * CELL_SIZE + CELL_SIZE / 2;
         const toX = pin.tail.col * CELL_SIZE + CELL_SIZE / 2;
         const toY = pin.tail.row * CELL_SIZE + CELL_SIZE / 2;
+        
+        const pinIconProps = {
+            x: 0,
+            y: 0,
+            width: CELL_SIZE - 8,
+            height: CELL_SIZE - 8,
+            color: "hsl(var(--pin-accent))",
+            className: "pointer-events-none"
+        };
+        
         return (
-          <line
-            key={`pin-line-${pIdx}`}
-            x1={fromX}
-            y1={fromY}
-            x2={toX}
-            y2={toY}
-            stroke={PIN_LINE_COLOR}
-            strokeWidth="2"
-            strokeLinecap="round"
-            className="pointer-events-none" 
-          />
+          <g key={`pin-group-${pIdx}`}>
+            <line
+              x1={fromX}
+              y1={fromY}
+              x2={toX}
+              y2={toY}
+              stroke={PIN_LINE_COLOR}
+              strokeWidth="2"
+              strokeLinecap="round"
+              className="pointer-events-none" 
+            />
+            <g transform={`translate(${pin.head.col * CELL_SIZE + 4}, ${pin.head.row * CELL_SIZE + 4})`}>
+              <Pin {...pinIconProps} />
+            </g>
+            <g transform={`translate(${pin.tail.col * CELL_SIZE + 4}, ${pin.tail.row * CELL_SIZE + 4})`}>
+              <Target {...pinIconProps} />
+            </g>
+          </g>
         );
       })}
        {/* Linking Lines */}

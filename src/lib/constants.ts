@@ -158,7 +158,7 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
         color: 'Purple',
       }
     ],
-    pins: [],
+    pins: [{ head: { row: 2, col: 2 }, tail: { row: 4, col: 6 } }],
   },
   fabricArea: {
     cols: 4,
@@ -230,4 +230,4 @@ export const COLOR_MAP: Record<string, string> = {
 export const LINKING_LINE_COLOR = "hsl(var(--primary))"; 
 export const CHAIN_LINE_COLOR = "hsl(var(--accent))";
 export const CHAIN_KEY_LINK_COLOR = "hsl(var(--knitout-teal))";
-export const PIN_LINE_COLOR = "hsl(var(--knitout-grey))";
+export const PIN_LINE_COLOR = "hsl(var(--pin-accent))";
