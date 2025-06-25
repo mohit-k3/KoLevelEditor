@@ -22,7 +22,7 @@ const FABRIC_BLOCK_GAP = 2;
 const FABRIC_EMPTY_SLOT_COLOR = "hsl(var(--muted) / 0.5)"; 
 
 const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: boolean}> = ({ data, hasErrors }) => {
-  const { rows, cols, cells, pairs = [], chains = [], pins = [] } = data;
+  const { rows, cols, cells, pairs = [], chains = [], pins = [], curtains = [] } = data;
   const width = cols * CELL_SIZE;
   const height = rows * CELL_SIZE;
 
@@ -277,6 +277,28 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
             strokeLinecap="round"
             className="pointer-events-none" 
           />
+        );
+      })}
+      {/* Curtains */}
+      {curtains.map((curtain, cIdx) => {
+        const x = curtain.topLeft.col * CELL_SIZE;
+        const y = curtain.topLeft.row * CELL_SIZE;
+        const width = (curtain.bottomRight.col - curtain.topLeft.col + 1) * CELL_SIZE;
+        const height = (curtain.bottomRight.row - curtain.topLeft.row + 1) * CELL_SIZE;
+
+        return (
+            <rect
+                key={`curtain-${cIdx}`}
+                x={x}
+                y={y}
+                width={width}
+                height={height}
+                fill="hsl(var(--knitout-white) / 0.6)"
+                stroke="hsl(var(--knitout-white) / 0.9)"
+                strokeWidth="1.5"
+                rx="2"
+                className="pointer-events-none"
+            />
         );
       })}
     </svg>

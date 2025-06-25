@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -41,6 +42,7 @@ export default {
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
         'pin-accent': 'hsl(var(--pin-accent))',
+        'curtain': 'hsl(var(--knitout-white))',
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

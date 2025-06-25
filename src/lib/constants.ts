@@ -68,6 +68,7 @@ export const createDefaultLevelData = (): LevelData => ({
     pairs: [], 
     chains: [],
     pins: [],
+    curtains: [],
   },
   fabricArea: {
     cols: DEFAULT_FABRIC_COLS,
@@ -159,6 +160,12 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
       }
     ],
     pins: [{ head: { row: 2, col: 2 }, tail: { row: 4, col: 6 } }],
+    curtains: [
+      { 
+        topLeft: { row: 0, col: 3 },
+        bottomRight: { row: 1, col: 4 }
+      }
+    ],
   },
   fabricArea: {
     cols: 4,
