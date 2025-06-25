@@ -48,11 +48,16 @@ export interface BobbinPin {
   tail: BobbinPairCoordinate;
 }
 
+export interface Curtain {
+  topLeft: BobbinPairCoordinate;
+  bottomRight: BobbinPairCoordinate;
+}
+
 export interface BobbinCell {
   type: "bobbin" | "pipe" | "empty";
   color?: BobbinColor; // For "bobbin"
   colors?: BobbinColor[]; // For "pipe"
-  has?: 'lock' | 'key' | 'chain-key' | 'pin-head' | 'pin-tail';
+  has?: 'lock' | 'key' | 'chain-key';
   accessoryColor?: BobbinColor; // For "lock", "key", and "chain-key"
   hidden?: boolean; // For "bobbin"
   ice?: boolean; // For "bobbin"
@@ -73,6 +78,7 @@ export interface LevelData {
     pairs?: BobbinPair[];
     chains?: BobbinChain[];
     pins?: BobbinPin[];
+    curtains?: Curtain[];
   };
   fabricArea: {
     cols: number;

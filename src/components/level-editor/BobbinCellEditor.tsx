@@ -34,6 +34,10 @@ interface BobbinCellEditorProps {
   isPinHead: boolean;
   isPinTail: boolean;
   isSelectedForPinning: boolean;
+  isCurtainingMode: boolean;
+  onCurtainClick: (rowIndex: number, colIndex: number) => void;
+  isActuallyInCurtain: boolean;
+  isSelectedForCurtaining: boolean;
 }
 
 const cellTypeDisplay: Record<BobbinCell['type'], string> = {
@@ -63,6 +67,10 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   isPinHead,
   isPinTail,
   isSelectedForPinning,
+  isCurtainingMode,
+  onCurtainClick,
+  isActuallyInCurtain,
+  isSelectedForCurtaining,
 }) => {
   const { setActiveEditorArea } = useLevelData();
 
@@ -226,6 +234,9 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
     } else if (isPinningMode) {
       event.preventDefault();
       onPinClick(rowIndex, colIndex);
+    } else if (isCurtainingMode) {
+      event.preventDefault();
+      onCurtainClick(rowIndex, colIndex);
     } else {
       setActiveEditorArea('bobbin'); 
     }
@@ -241,7 +252,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           variant="outline"
           className={cn(
             "w-12 h-12 p-0 m-0.5 aspect-square focus:ring-2 focus:ring-ring focus:ring-offset-2 relative",
-            (isLinkingMode || isChainingMode || isPinningMode) && "cursor-crosshair hover:bg-accent/20",
+            (isLinkingMode || isChainingMode || isPinningMode || isCurtainingMode) && "cursor-crosshair hover:bg-accent/20",
             isSelectedForLinking && "ring-2 ring-accent ring-offset-background shadow-lg",
             isActuallyLinked && !isSelectedForLinking && "border-primary/50 border-2",
             isActuallyInChain && !isSelectedChain && "border-accent/50 border-2",
@@ -249,6 +260,8 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             isChainAwaitingKeyLink && "ring-2 ring-blue-500 ring-offset-background shadow-lg",
             isSelectedForPinning && "ring-2 ring-pin-accent ring-offset-background shadow-lg",
             isPinned && !isSelectedForPinning && "border-pin-accent/50 border-2",
+            isSelectedForCurtaining && "ring-2 ring-blue-500 ring-offset-background shadow-lg",
+            isActuallyInCurtain && !isSelectedForCurtaining && "bg-primary/10",
           )}
           aria-label={`Edit cell at row ${rowIndex + 1}, column ${colIndex + 1}. Current type: ${cellTypeDisplay[cell.type]}`}
           onClick={handleButtonClick}
@@ -304,11 +317,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
               <Label className="text-sm font-medium">Accessory</Label>
                {isPinned ? (
                 <p className="text-sm text-muted-foreground mt-1">
-                  This bobbin is a {' '}
-                  <span className="font-semibold text-pin-accent">
-                    {isPinHead ? 'Pin Head' : 'Pin Tail'}
-                  </span>
-                  . Remove the pin from the grid to add other accessories.
+                  This bobbin is a part of a Pin. Remove the pin from the grid to add other accessories.
                 </p>
               ) : (
                 <RadioGroup

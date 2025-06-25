@@ -4,10 +4,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLevelData } from '@/contexts/LevelDataContext';
 import { NumberSpinner } from '@/components/shared/NumberSpinner';
 import { BobbinCellEditor } from './BobbinCellEditor';
-import type { BobbinCell, BobbinPairCoordinate, BobbinChain, BobbinPin } from '@/lib/types';
+import type { BobbinCell, BobbinPairCoordinate, BobbinChain, BobbinPin, Curtain } from '@/lib/types';
 import { createEmptyBobbinCell } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
-import { Copy, Trash2, Link2, Link2Off, LinkIcon, KeyRound, Pin } from 'lucide-react';
+import { Copy, Trash2, Link2, Link2Off, LinkIcon, KeyRound, Pin, RectangleHorizontal } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +33,7 @@ const isCoordEqual = (c1: BobbinPairCoordinate, c2: BobbinPairCoordinate): boole
 
 export const BobbinGridEditor: React.FC = () => {
   const { levelData, setLevelData } = useLevelData();
-  const { rows, cols, cells, pairs = [], chains = [], pins = [] } = levelData.bobbinArea;
+  const { rows, cols, cells, pairs = [], chains = [], pins = [], curtains = [] } = levelData.bobbinArea;
   const { toast } = useToast();
   const gridRef = useRef<HTMLDivElement>(null);
   const [focusedCell, setFocusedCell] = useState<{ row: number; col: number } | null>(null);
@@ -50,6 +50,10 @@ export const BobbinGridEditor: React.FC = () => {
   // Pinning state
   const [isPinningMode, setIsPinningMode] = useState(false);
   const [pinStartNode, setPinStartNode] = useState<BobbinPairCoordinate | null>(null);
+
+  // Curtain state
+  const [isCurtainingMode, setIsCurtainingMode] = useState(false);
+  const [curtainStartNode, setCurtainStartNode] = useState<BobbinPairCoordinate | null>(null);
 
   const handleRowsChange = (newRows: number) => {
     setLevelData(draft => {
@@ -77,6 +81,9 @@ export const BobbinGridEditor: React.FC = () => {
         }
         if (draft.bobbinArea.pins) {
           draft.bobbinArea.pins = draft.bobbinArea.pins.filter(p => p.head.row < newRows && p.tail.row < newRows);
+        }
+        if (draft.bobbinArea.curtains) {
+          draft.bobbinArea.curtains = draft.bobbinArea.curtains.filter(c => c.topLeft.row < newRows && c.bottomRight.row < newRows);
         }
       }
       draft.bobbinArea.rows = newRows;
@@ -113,6 +120,9 @@ export const BobbinGridEditor: React.FC = () => {
        if (draft.bobbinArea.pins) {
           draft.bobbinArea.pins = draft.bobbinArea.pins.filter(p => p.head.col < newCols && p.tail.col < newCols);
        }
+       if (draft.bobbinArea.curtains) {
+          draft.bobbinArea.curtains = draft.bobbinArea.curtains.filter(c => c.topLeft.col < newCols && c.bottomRight.col < newCols);
+       }
       draft.bobbinArea.cols = newCols;
     });
   };
@@ -129,10 +139,8 @@ export const BobbinGridEditor: React.FC = () => {
       if (finalCell.type === 'bobbin') {
         if (isPinHead) {
           finalCell.has = 'pin-head';
-          delete finalCell.accessoryColor;
         } else if (isPinTail) {
           finalCell.has = 'pin-tail';
-          delete finalCell.accessoryColor;
         }
       }
 
@@ -255,6 +263,8 @@ export const BobbinGridEditor: React.FC = () => {
       setChainToLinkKey(null);
       setIsPinningMode(false);
       setPinStartNode(null);
+      setIsCurtainingMode(false);
+      setCurtainStartNode(null);
     }
   };
   
@@ -268,6 +278,8 @@ export const BobbinGridEditor: React.FC = () => {
         setLinkStartNode(null);
         setIsPinningMode(false);
         setPinStartNode(null);
+        setIsCurtainingMode(false);
+        setCurtainStartNode(null);
     }
   }
 
@@ -281,6 +293,23 @@ export const BobbinGridEditor: React.FC = () => {
       setIsChainingMode(false);
       setActiveChainIndex(null);
       setChainToLinkKey(null);
+      setIsCurtainingMode(false);
+      setCurtainStartNode(null);
+    }
+  };
+
+  const toggleCurtainingMode = () => {
+    const willBeOn = !isCurtainingMode;
+    setIsCurtainingMode(willBeOn);
+    setCurtainStartNode(null);
+    if (willBeOn) {
+      setIsLinkingMode(false);
+      setLinkStartNode(null);
+      setIsChainingMode(false);
+      setActiveChainIndex(null);
+      setChainToLinkKey(null);
+      setIsPinningMode(false);
+      setPinStartNode(null);
     }
   };
 
@@ -293,6 +322,12 @@ export const BobbinGridEditor: React.FC = () => {
   };
   const isCellPinHead = (r: number, c: number): boolean => pins.some(p => p.head.row === r && p.head.col === c);
   const isCellPinTail = (r: number, c: number): boolean => pins.some(p => p.tail.row === r && p.tail.col === c);
+  const isCellInCurtain = (r: number, c: number): boolean => {
+    return curtains.some(curtain => 
+      r >= curtain.topLeft.row && r <= curtain.bottomRight.row &&
+      c >= curtain.topLeft.col && c <= curtain.bottomRight.col
+    );
+  };
 
 
   const handleLinkClick = (rIdx: number, cIdx: number) => {
@@ -479,6 +514,74 @@ export const BobbinGridEditor: React.FC = () => {
       setPinStartNode(clickedCoord);
     }
   };
+
+  const handleCurtainClick = (rIdx: number, cIdx: number) => {
+    if (!isCurtainingMode) return;
+    const clickedCoord = { row: rIdx, col: cIdx };
+
+    if (!curtainStartNode) {
+        // Check if we clicked inside an existing curtain to remove it
+        const curtainIndexToRemove = curtains.findIndex(curtain =>
+            clickedCoord.row >= curtain.topLeft.row && clickedCoord.row <= curtain.bottomRight.row &&
+            clickedCoord.col >= curtain.topLeft.col && clickedCoord.col <= curtain.bottomRight.col
+        );
+
+        if (curtainIndexToRemove > -1) {
+            setLevelData(draft => {
+                draft.bobbinArea.curtains?.splice(curtainIndexToRemove, 1);
+            });
+            toast({ title: "Curtain Removed" });
+        } else {
+            setCurtainStartNode(clickedCoord);
+        }
+        return;
+    }
+
+    if (isCoordEqual(curtainStartNode, clickedCoord)) {
+        setCurtainStartNode(null); // Deselect if clicking the same node
+        return;
+    }
+
+    const newTopLeft = {
+        row: Math.min(curtainStartNode.row, clickedCoord.row),
+        col: Math.min(curtainStartNode.col, clickedCoord.col),
+    };
+    const newBottomRight = {
+        row: Math.max(curtainStartNode.row, clickedCoord.row),
+        col: Math.max(curtainStartNode.col, clickedCoord.col),
+    };
+
+    const width = newBottomRight.col - newTopLeft.col + 1;
+    const height = newBottomRight.row - newTopLeft.row + 1;
+
+    if (width > 4 || height > 4 || width < 1 || height < 1 || (width === 1 && height === 1)) {
+        toast({ title: "Invalid Curtain Size", description: "Curtains must be between 1x2 and 4x4.", variant: "destructive" });
+        setCurtainStartNode(null);
+        return;
+    }
+
+    const newCurtain: Curtain = { topLeft: newTopLeft, bottomRight: newBottomRight };
+
+    const overlaps = curtains.some(existingCurtain =>
+        newCurtain.topLeft.col <= existingCurtain.bottomRight.col &&
+        newCurtain.bottomRight.col >= existingCurtain.topLeft.col &&
+        newCurtain.topLeft.row <= existingCurtain.bottomRight.row &&
+        newCurtain.bottomRight.row >= existingCurtain.topLeft.row
+    );
+
+    if (overlaps) {
+        toast({ title: "Curtains Overlap", description: "Curtains cannot overlap with each other.", variant: "destructive" });
+        setCurtainStartNode(null);
+        return;
+    }
+
+    setLevelData(draft => {
+        if (!draft.bobbinArea.curtains) draft.bobbinArea.curtains = [];
+        draft.bobbinArea.curtains.push(newCurtain);
+    });
+    toast({ title: "Curtain Created" });
+    setCurtainStartNode(null);
+  };
   
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -596,6 +699,16 @@ export const BobbinGridEditor: React.FC = () => {
           <Pin className="mr-2 h-4 w-4" />
           {isPinningMode ? "Pinning" : "Pin"}
         </Button>
+        <Button 
+          variant={isCurtainingMode ? "secondary" : "outline"} 
+          onClick={toggleCurtainingMode}
+          title={isCurtainingMode ? "Disable Curtaining Mode" : "Enable Curtaining Mode"}
+          size="sm"
+          className="self-end"
+        >
+          <RectangleHorizontal className="mr-2 h-4 w-4" />
+          {isCurtainingMode ? "Curtaining" : "Curtain"}
+        </Button>
         {isChainingMode && activeChainIndex !== null && (
             <Button
                 variant="outline"
@@ -665,6 +778,10 @@ export const BobbinGridEditor: React.FC = () => {
                   isSelectedForPinning={!!pinStartNode && pinStartNode.row === rIdx && pinStartNode.col === cIdx}
                   isPinHead={isCellPinHead(rIdx, cIdx)}
                   isPinTail={isCellPinTail(rIdx, cIdx)}
+                  isCurtainingMode={isCurtainingMode}
+                  onCurtainClick={handleCurtainClick}
+                  isActuallyInCurtain={isCellInCurtain(rIdx, cIdx)}
+                  isSelectedForCurtaining={!!curtainStartNode && curtainStartNode.row === rIdx && curtainStartNode.col === cIdx}
                 />
               ))}
             </React.Fragment>
@@ -677,6 +794,7 @@ export const BobbinGridEditor: React.FC = () => {
         {isChainingMode && chainToLinkKey === null && " Chaining mode: Click bobbin to start/select chain. Click adjacent bobbin to extend. Click last bobbin in chain to remove it."}
         {isChainingMode && chainToLinkKey !== null && ` Linking Key for Chain ${chainToLinkKey+1}: Click a bobbin with a 'chain-key' accessory.`}
         {isPinningMode && " Pinning mode: Click any grid cell to start. Click a second cell to create the pin. Click a pinned cell to unpin."}
+        {isCurtainingMode && " Curtaining mode: Click to set first corner. Click again to set opposite corner. Click existing curtain to remove it."}
       </div>
     </div>
   );
