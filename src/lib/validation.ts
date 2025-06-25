@@ -213,8 +213,8 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
       // Check dimensions
       const width = curtain.bottomRight.col - curtain.topLeft.col + 1;
       const height = curtain.bottomRight.row - curtain.topLeft.row + 1;
-      if (width > 4 || height > 4 || width < 1 || height < 1) {
-          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${curtainLabel} has invalid dimensions (${width}x${height}). Max size is 4x4.`});
+      if (width > 7 || height > 7 || width < 1 || height < 1) {
+          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${curtainLabel} has invalid dimensions (${width}x${height}). Max size is 7x7.`});
       } else if (width === 1 && height === 1) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${curtainLabel} has invalid dimensions (1x1). Minimum size is 1x2 or 2x1.`});
       }

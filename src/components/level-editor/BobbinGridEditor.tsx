@@ -554,8 +554,8 @@ export const BobbinGridEditor: React.FC = () => {
     const width = newBottomRight.col - newTopLeft.col + 1;
     const height = newBottomRight.row - newTopLeft.row + 1;
 
-    if (width > 4 || height > 4 || width < 1 || height < 1 || (width === 1 && height === 1)) {
-        toast({ title: "Invalid Curtain Size", description: "Curtains must be between 1x2 and 4x4.", variant: "destructive" });
+    if (width > 7 || height > 7 || width < 1 || height < 1 || (width === 1 && height === 1)) {
+        toast({ title: "Invalid Curtain Size", description: "Curtains must be between 1x2 and 7x7.", variant: "destructive" });
         setCurtainStartNode(null);
         return;
     }
