@@ -293,8 +293,8 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                 y={y}
                 width={width}
                 height={height}
-                fill="hsl(var(--primary) / 0.15)"
-                stroke="hsl(var(--primary) / 0.6)"
+                fill="hsl(var(--knitout-white) / 0.6)"
+                stroke="hsl(var(--knitout-white) / 0.9)"
                 strokeWidth="1.5"
                 rx="2"
                 className="pointer-events-none"
