@@ -103,8 +103,8 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
         if (!cell.face) {
           messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: Pipe cell ${cellPos} is missing a face direction.` });
         }
-        if (!cell.colors || cell.colors.length < 2) {
-          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Pipe cell ${cellPos} must specify at least 2 colors.` });
+        if (!cell.colors || cell.colors.length < 1) {
+          messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Pipe cell ${cellPos} must specify at least 1 color.` });
         } else if (cell.colors.length > 5) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Pipe cell ${cellPos} cannot have more than 5 colors.` });
         }

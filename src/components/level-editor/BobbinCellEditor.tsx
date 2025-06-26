@@ -85,11 +85,11 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
         newCellData.accessoryColor = cell.accessoryColor;
       }
     } else if (newType === 'pipe') {
-      if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) {
+      if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 1) {
         newCellData.colors = cell.colors.slice(0, MAX_PIPE_COLORS); 
         newCellData.face = cell.face;
       } else {
-        newCellData.colors = [AVAILABLE_COLORS[0], AVAILABLE_COLORS[1]];
+        newCellData.colors = [AVAILABLE_COLORS[0]];
         newCellData.face = 'up';
       }
     }
@@ -143,12 +143,10 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
     onCellChange(newCell);
   };
 
-  const actualNumPipeColors = (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) 
-    ? cell.colors.length 
-    : 2;
+  const actualNumPipeColors = (cell.type === 'pipe' && cell.colors) ? cell.colors.length : 1;
 
   const handleNumPipeColorsChange = (newNum: number) => {
-    const newCount = Math.max(2, Math.min(newNum, MAX_PIPE_COLORS));
+    const newCount = Math.max(1, Math.min(newNum, MAX_PIPE_COLORS));
     const currentColors = (cell.type === 'pipe' && cell.colors) ? cell.colors : [];
     const updatedColors: BobbinColor[] = Array(newCount).fill(null).map((_, i) => {
       return currentColors[i] || AVAILABLE_COLORS[i % AVAILABLE_COLORS.length];
@@ -381,20 +379,20 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           <div className="space-y-3">
             <div>
               <Label htmlFor={`num-pipe-colors-${rowIndex}-${colIndex}`} className="text-sm font-medium">
-                Number of Colors (2-{MAX_PIPE_COLORS})
+                Number of Colors (1-{MAX_PIPE_COLORS})
               </Label>
               <NumberSpinner
                 id={`num-pipe-colors-${rowIndex}-${colIndex}`}
                 label="" 
                 value={actualNumPipeColors}
                 onChange={handleNumPipeColorsChange}
-                min={2}
+                min={1}
                 max={MAX_PIPE_COLORS}
                 className="mt-1 w-full"
               />
             </div>
-            {(!cell.colors || cell.colors.length < 2) && (
-                 <p className="text-xs text-destructive">Pipe must have at least 2 colors.</p>
+            {(!cell.colors || cell.colors.length < 1) && (
+                 <p className="text-xs text-destructive">Pipe must have at least 1 color.</p>
             )}
 
             <div>
