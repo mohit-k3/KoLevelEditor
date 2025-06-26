@@ -163,7 +163,8 @@ export const EXAMPLE_LEVEL_DATA: LevelData = {
     curtains: [
       { 
         topLeft: { row: 0, col: 3 },
-        bottomRight: { row: 1, col: 4 }
+        bottomRight: { row: 1, col: 4 },
+        count: 1,
       }
     ],
   },

@@ -208,6 +208,11 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
   curtains.forEach((curtain, cIdx) => {
       const curtainLabel = `Curtain ${cIdx + 1}`;
 
+      // Check count
+      if (curtain.count === undefined || typeof curtain.count !== 'number' || curtain.count < 1) {
+        messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${curtainLabel} must have a 'count' that is a number greater than 0.`});
+      }
+
       // Check bounds
       if (curtain.topLeft.row < 0 || curtain.topLeft.col < 0 || curtain.bottomRight.row >= bobbinRows || curtain.bottomRight.col >= bobbinCols) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: ${curtainLabel} is partially or fully outside the grid boundaries.`});
