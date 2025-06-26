@@ -13,6 +13,7 @@ import { SnowflakeIcon, LockIcon, KeyIcon, KeySquare, Pin, Target } from 'lucide
 interface LiveVisualizerProps {
   editorType: 'bobbin' | 'fabric';
   className?: string;
+  selectedCurtainIndex?: number | null; // Optional prop for highlighting
 }
 
 const CELL_SIZE = 32; 
@@ -21,7 +22,7 @@ const SPOOL_END_HEIGHT_RATIO = 0.2;
 const FABRIC_BLOCK_GAP = 2; 
 const FABRIC_EMPTY_SLOT_COLOR = "hsl(var(--muted) / 0.5)"; 
 
-const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: boolean}> = ({ data, hasErrors }) => {
+const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: boolean, selectedCurtainIndex: number | null}> = ({ data, hasErrors, selectedCurtainIndex }) => {
   const { rows, cols, cells, pairs = [], chains = [], pins = [], curtains = [] } = data;
   const width = cols * CELL_SIZE;
   const height = rows * CELL_SIZE;
@@ -312,8 +313,10 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
         const y = curtain.topLeft.row * CELL_SIZE;
         const width = (curtain.bottomRight.col - curtain.topLeft.col + 1) * CELL_SIZE;
         const height = (curtain.bottomRight.row - curtain.topLeft.row + 1) * CELL_SIZE;
+        const isSelected = selectedCurtainIndex === cIdx;
 
         return (
+          <g key={`curtain-group-${cIdx}`} className="pointer-events-none">
             <rect
                 key={`curtain-${cIdx}`}
                 x={x}
@@ -321,11 +324,23 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                 width={width}
                 height={height}
                 fill="hsl(var(--knitout-white) / 0.6)"
-                stroke="hsl(var(--knitout-white) / 0.9)"
-                strokeWidth="1.5"
+                stroke={isSelected ? 'hsl(var(--primary))' : 'hsl(var(--knitout-white) / 0.9)'}
+                strokeWidth={isSelected ? 3 : 1.5}
                 rx="2"
-                className="pointer-events-none"
             />
+            <text
+              x={x + width / 2}
+              y={y + height / 2}
+              dy=".3em"
+              textAnchor="middle"
+              fontSize="16"
+              fontWeight="bold"
+              fill="hsl(var(--foreground))"
+              className="pointer-events-none"
+            >
+              {curtain.count}
+            </text>
+          </g>
         );
       })}
     </svg>
@@ -434,6 +449,11 @@ export const LiveVisualizer: React.FC<LiveVisualizerProps> = ({ editorType, clas
   const { levelData, validationMessages } = useLevelData();
   const hasErrors = validationMessages.some(msg => msg.type === 'error');
 
+  // This is a temporary way to get the selected curtain index. 
+  // In a more complex app, this might come from a different context or prop.
+  const bobbinGridEditorState = (levelData as any).__bobbinGridEditorState || {};
+  const selectedCurtainIndex = bobbinGridEditorState.selectedCurtainIndex ?? null;
+
   return (
     <div className={cn("p-4 bg-card rounded-lg shadow space-y-3", className)}>
       <h3 className="text-lg font-semibold text-primary">
@@ -442,7 +462,7 @@ export const LiveVisualizer: React.FC<LiveVisualizerProps> = ({ editorType, clas
       </h3>
       <div className="flex justify-center items-center overflow-auto">
       {editorType === 'bobbin' ? (
-        <BobbinVisualizer data={levelData.bobbinArea} hasErrors={hasErrors} />
+        <BobbinVisualizer data={levelData.bobbinArea} hasErrors={hasErrors} selectedCurtainIndex={selectedCurtainIndex} />
       ) : (
         <FabricVisualizer data={levelData.fabricArea} hasErrors={hasErrors} />
       )}

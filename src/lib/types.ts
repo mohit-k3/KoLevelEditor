@@ -53,6 +53,7 @@ export interface BobbinPin {
 export interface Curtain {
   topLeft: BobbinPairCoordinate;
   bottomRight: BobbinPairCoordinate;
+  count: number;
 }
 
 export interface BobbinCell {
