@@ -90,6 +90,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
         newCellData.face = cell.face;
       } else {
         newCellData.colors = [AVAILABLE_COLORS[0], AVAILABLE_COLORS[1]];
+        newCellData.face = 'up';
       }
     }
     // For 'empty', we just want { type: 'empty' }
