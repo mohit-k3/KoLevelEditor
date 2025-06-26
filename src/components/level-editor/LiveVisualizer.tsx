@@ -141,6 +141,29 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
           if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 1) { 
             const numColors = cell.colors.length;
             const stripeWidth = CELL_SIZE / numColors;
+
+            let arrowPoints = "";
+            const arrowSize = 6;
+            const centerX = x + CELL_SIZE / 2;
+            const centerY = y + CELL_SIZE / 2;
+
+            switch(cell.face) {
+                case 'up':
+                    arrowPoints = `${centerX},${centerY - arrowSize} ${centerX - arrowSize},${centerY + arrowSize/2} ${centerX + arrowSize},${centerY + arrowSize/2}`;
+                    break;
+                case 'down':
+                    arrowPoints = `${centerX},${centerY + arrowSize} ${centerX - arrowSize},${centerY - arrowSize/2} ${centerX + arrowSize},${centerY - arrowSize/2}`;
+                    break;
+                case 'left':
+                    arrowPoints = `${centerX - arrowSize},${centerY} ${centerX + arrowSize/2},${centerY - arrowSize} ${centerX + arrowSize/2},${centerY + arrowSize}`;
+                    break;
+                case 'right':
+                    arrowPoints = `${centerX + arrowSize},${centerY} ${centerX - arrowSize/2},${centerY - arrowSize} ${centerX - arrowSize/2},${centerY + arrowSize}`;
+                    break;
+            }
+
+            const arrowEl = cell.face ? <polygon points={arrowPoints} fill="hsl(var(--background))" opacity="0.75" stroke="hsl(var(--foreground))" strokeWidth="0.5" /> : null;
+            
             cellElement = (
               <g>
                 {cell.colors.map((pipeColor, i) => (
@@ -154,13 +177,17 @@ const BobbinVisualizer: React.FC<{data: LevelData['bobbinArea'], hasErrors: bool
                   />
                 ))}
                 <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="none" stroke="hsl(var(--border) / 0.5)" strokeWidth="0.5"/>
+                {arrowEl}
               </g>
             );
           } else if (cell.type === 'pipe') { 
              cellElement = <rect x={x} y={y} width={CELL_SIZE} height={CELL_SIZE} fill="hsl(var(--muted))" stroke="hsl(var(--destructive))" strokeWidth="1" />;
           }
           
-          const accessoryIcon = getAccessoryIcon(cell, x, y);
+          let accessoryIcon = null;
+          if (cell.type === 'bobbin') {
+            accessoryIcon = getAccessoryIcon(cell, x, y);
+          }
           
           return (
             <React.Fragment key={`bobbin-frag-${rIdx}-${cIdx}`}>

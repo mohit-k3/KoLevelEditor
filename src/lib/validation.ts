@@ -64,7 +64,7 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
       if (cell.type === 'bobbin') {
         const isPinParticipant = occupiedByPin.has(coordKey);
         
-        if (cell.has && isPinParticipant) {
+        if (cell.has && isPinParticipant && cell.has !== 'pin-head' && cell.has !== 'pin-tail') {
              messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Cell ${cellPos} has a pin and another accessory (e.g. lock/key).` });
         }
         
@@ -100,6 +100,9 @@ export const validateLevelData = (data: LevelData): ValidationMessage[] => {
       }
       
       if (cell.type === 'pipe') {
+        if (!cell.face) {
+          messages.push({ id: `val-${idCounter++}`, type: 'warning', message: `Bobbin Area: Pipe cell ${cellPos} is missing a face direction.` });
+        }
         if (!cell.colors || cell.colors.length < 2) {
           messages.push({ id: `val-${idCounter++}`, type: 'error', message: `Bobbin Area: Pipe cell ${cellPos} must specify at least 2 colors.` });
         } else if (cell.colors.length > 5) {

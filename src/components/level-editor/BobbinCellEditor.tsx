@@ -11,7 +11,7 @@ import { ColorPicker } from '@/components/shared/ColorPicker';
 import { NumberSpinner } from '@/components/shared/NumberSpinner';
 import { cn } from '@/lib/utils';
 import { useLevelData } from '@/contexts/LevelDataContext';
-import { SnowflakeIcon, LockIcon, KeyIcon, KeySquare, Pin, Target } from 'lucide-react'; 
+import { SnowflakeIcon, LockIcon, KeyIcon, KeySquare, Pin, Target, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react'; 
 import { Checkbox } from '../ui/checkbox';
 
 
@@ -87,8 +87,10 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
     } else if (newType === 'pipe') {
       if (cell.type === 'pipe' && cell.colors && cell.colors.length >= 2) {
         newCellData.colors = cell.colors.slice(0, MAX_PIPE_COLORS); 
+        newCellData.face = cell.face;
       } else {
         newCellData.colors = [AVAILABLE_COLORS[0], AVAILABLE_COLORS[1]];
+        newCellData.face = 'up';
       }
     }
     // For 'empty', we just want { type: 'empty' }
@@ -162,6 +164,10 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
     }
   };
 
+  const handleFaceChange = (newFace: 'up' | 'down' | 'left' | 'right') => {
+    onCellChange({ ...cell, face: newFace });
+  };
+
   const getCellDisplay = () => {
     const iconClass = "w-4 h-4 text-white mix-blend-difference";
 
@@ -208,7 +214,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
       case 'pipe':
         return (
           <div 
-            className="w-full h-full rounded-sm border-2 flex items-center justify-center"
+            className="w-full h-full rounded-sm border-2 flex items-center justify-center relative"
             style={{ 
               borderColor: cell.colors && cell.colors.length > 0 ? COLOR_MAP[cell.colors[0]] : 'hsl(var(--border))',
               boxShadow: cell.colors && cell.colors.length > 1 ? `0 0 0 2px ${COLOR_MAP[cell.colors[1]]} inset` : 'none'
@@ -216,6 +222,14 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             aria-label={`Pipe cell, colors ${cell.colors?.join(', ') || 'none'}`}
           >
              <svg viewBox="0 0 10 10" className="w-4 h-4"><circle cx="5" cy="5" r="2" fill="currentColor" /></svg>
+              {cell.face && (
+                <div className="absolute inset-0 flex items-center justify-center text-white mix-blend-difference">
+                    {cell.face === 'up' && <ArrowUp className="w-5 h-5" />}
+                    {cell.face === 'down' && <ArrowDown className="w-5 h-5" />}
+                    {cell.face === 'left' && <ArrowLeft className="w-5 h-5" />}
+                    {cell.face === 'right' && <ArrowRight className="w-5 h-5" />}
+                </div>
+              )}
           </div>
         );
       case 'empty':
@@ -243,7 +257,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
   };
   
   const isBobbinType = cell.type === 'bobbin';
-  const isPinned = isPinHead || isPinTail;
+  const isPinned = cell.has === 'pin-head' || cell.has === 'pin-tail';
 
   return (
     <Popover>
@@ -267,8 +281,8 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
           onClick={handleButtonClick}
         >
           {getCellDisplay()}
-          {isPinHead && <Pin className="absolute w-6 h-6 text-pin-accent pointer-events-none" style={{left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}} />}
-          {isPinTail && <Target className="absolute w-6 h-6 text-pin-accent pointer-events-none" style={{left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}} />}
+          {cell.has === 'pin-head' && <Pin className="absolute w-6 h-6 text-pin-accent pointer-events-none" style={{left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}} />}
+          {cell.has === 'pin-tail' && <Target className="absolute w-6 h-6 text-pin-accent pointer-events-none" style={{left: '50%', top: '50%', transform: 'translate(-50%, -50%)'}} />}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4 space-y-4">
@@ -382,6 +396,25 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
             {(!cell.colors || cell.colors.length < 2) && (
                  <p className="text-xs text-destructive">Pipe must have at least 2 colors.</p>
             )}
+
+            <div>
+              <Label className="text-sm font-medium">Face Direction</Label>
+              <RadioGroup
+                value={cell.face || ''}
+                onValueChange={(value) => handleFaceChange(value as any)}
+                className="mt-1 grid grid-cols-4 gap-1"
+              >
+                {(['up', 'down', 'left', 'right'] as const).map(dir => (
+                  <Label key={dir} htmlFor={`face-${dir}-${rowIndex}-${colIndex}`} className="p-2 border rounded-md flex justify-center items-center cursor-pointer has-[:checked]:bg-accent has-[:checked]:text-accent-foreground data-[state=unchecked]:hover:bg-accent/50">
+                    <RadioGroupItem value={dir} id={`face-${dir}-${rowIndex}-${colIndex}`} className="sr-only" />
+                    {dir === 'up' && <ArrowUp className="w-4 h-4" />}
+                    {dir === 'down' && <ArrowDown className="w-4 h-4" />}
+                    {dir === 'left' && <ArrowLeft className="w-4 h-4" />}
+                    {dir === 'right' && <ArrowRight className="w-4 h-4" />}
+                  </Label>
+                ))}
+              </RadioGroup>
+            </div>
             
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               <Label className="text-sm font-medium">Pipe Colors</Label>

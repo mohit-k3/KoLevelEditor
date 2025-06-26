@@ -99,6 +99,19 @@ export const HeaderToolbar: React.FC = () => {
             throw new Error("Invalid JSON structure: missing level, bobbinArea, or fabricArea.");
         }
 
+        let pipesDefaulted = 0;
+        // Default pipe faces to 'up' if not present
+        if (importedData.bobbinArea && importedData.bobbinArea.cells) {
+          importedData.bobbinArea.cells.forEach(row => {
+            row.forEach(cell => {
+              if (cell.type === 'pipe' && !cell.face) {
+                cell.face = 'up';
+                pipesDefaulted++;
+              }
+            });
+          });
+        }
+
         if (importedData.difficulty === undefined) {
           importedData.difficulty = 'Easy'; 
           toast({
@@ -107,6 +120,13 @@ export const HeaderToolbar: React.FC = () => {
           });
         } else if (!DIFFICULTIES.includes(importedData.difficulty)) {
           throw new Error(`Invalid difficulty value "${importedData.difficulty}". Must be one of: ${DIFFICULTIES.join(', ')}.`);
+        }
+        
+        if (pipesDefaulted > 0) {
+          toast({
+            title: "Import Info",
+            description: `${pipesDefaulted} pipe(s) were missing a face direction and were defaulted to 'up'.`,
+          });
         }
 
         loadLevelData(importedData);
