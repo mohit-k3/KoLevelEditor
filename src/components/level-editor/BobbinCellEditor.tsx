@@ -406,7 +406,7 @@ export const BobbinCellEditor: React.FC<BobbinCellEditorProps> = ({
                 className="mt-1 grid grid-cols-4 gap-1"
               >
                 {(['up', 'down', 'left', 'right'] as const).map(dir => (
-                  <Label key={dir} htmlFor={`face-${dir}-${rowIndex}-${colIndex}`} className="p-2 border rounded-md flex justify-center items-center cursor-pointer has-[:checked]:bg-accent has-[:checked]:text-accent-foreground data-[state=unchecked]:hover:bg-accent/50">
+                  <Label key={dir} htmlFor={`face-${dir}-${rowIndex}-${colIndex}`} className="p-2 border rounded-md flex justify-center items-center cursor-pointer has-[[data-state=checked]]:bg-accent has-[[data-state=checked]]:text-accent-foreground has-[[data-state=unchecked]]:hover:bg-accent/50">
                     <RadioGroupItem value={dir} id={`face-${dir}-${rowIndex}-${colIndex}`} className="sr-only" />
                     {dir === 'up' && <ArrowUp className="w-4 h-4" />}
                     {dir === 'down' && <ArrowDown className="w-4 h-4" />}
@@ -459,3 +459,5 @@ function SpoolIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+    
